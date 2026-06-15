@@ -11,6 +11,7 @@ public class EmailService {
     @Autowired
     private JavaMailSender javaMailSender;
 
+    @Async("taskExecutor")
     public void sendOtpEmail(String toEmail, String otp) {
         String subject = "Xác thực tài khoản Olympic IT";
         String content = "Chào bạn,\n\nĐây là mã OTP để kích hoạt tài khoản: " + otp +
@@ -18,6 +19,7 @@ public class EmailService {
         sendEmail(toEmail, subject, content);
     }
 
+    @Async("taskExecutor")
     public void sendResetPasswordEmail(String toEmail, String otp) {
         String subject = "Yêu cầu đặt lại mật khẩu";
         String content = "Chào bạn,\n\nĐây là mã OTP để xác nhận cài đặt lại mật khẩu: " + otp +
@@ -25,7 +27,6 @@ public class EmailService {
         sendEmail(toEmail, subject, content);
     }
 
-    @Async("taskExecutor")
     public void sendEmail(String to, String subject, String content) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();

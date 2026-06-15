@@ -17,9 +17,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleGeneralException(Exception ex) {
+        ex.printStackTrace();
         return ResponseEntity
                 .internalServerError()
                 .body(ApiResponse.error(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode(),
-                        ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage()));
+                        "Lỗi hệ thống: " + ex.getMessage()));
     }
 }

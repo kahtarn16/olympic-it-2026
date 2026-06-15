@@ -77,7 +77,7 @@ public class AuthService {
             throw new AppException(ErrorCode.OTP_EXPIRED);
         }
 
-        if (!activeEmail.getOtpCode().equals(request.getOtpCode())) {
+        if (request.getOtpCode() == null || !activeEmail.getOtpCode().equals(request.getOtpCode())) {
             throw new AppException(ErrorCode.INVALID_OTP);
         }
 
@@ -91,7 +91,7 @@ public class AuthService {
         Users user = usersRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        if (user.getIsActive()) {
+        if (Boolean.TRUE.equals(user.getIsActive())) {
             throw new AppException(ErrorCode.USER_ALREADY_ACTIVE);
         }
 
