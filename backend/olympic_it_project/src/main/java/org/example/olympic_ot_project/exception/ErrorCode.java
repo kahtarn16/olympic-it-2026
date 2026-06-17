@@ -15,7 +15,8 @@ public enum ErrorCode {
     INVALID_CREDENTIALS(1006, "Sai tên đăng nhập hoặc mật khẩu"),
     ROLE_NOT_FOUND(1007, "Không tìm thấy role"),
     USER_ALREADY_ACTIVE(1008, "Tài khoản đã được xác nhận từ trước"),
-    OTP_RESEND_TOO_FAST(1009, "Vui lòng đợi 1 phút");
+    OTP_RESEND_TOO_FAST(1009, "Vui lòng đợi 1 phút"),
+    USER_NOT_ACTIVE(1010, "Người dùng chưa xác nhận tài khoản");
 
     private final int code;
     private final String message;
