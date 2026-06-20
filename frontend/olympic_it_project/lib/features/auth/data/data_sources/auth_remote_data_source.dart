@@ -10,14 +10,19 @@ class AuthRemoteDataSource {
   AuthRemoteDataSource(this.apiClient);
 
   Future<LoginResponse> login(LoginRequest request) async {
-    final response = await apiClient.post("login", body: request.toJson());
+    try {
+      final response = await apiClient.post("auth/login", body: request.toJson());
 
-    if(response.statusCode == 200) {
-      final Map<String, dynamic> jsonMap = jsonDecode(response.body);
-
-      return LoginResponse.fromJson(jsonMap);
-    } else {
-      throw Exception("Đăng nhập thất bại với mã lỗi: ${response.statusCode}");
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonMap = jsonDecode(response.body);
+        return LoginResponse.fromJson(jsonMap);
+      } else {
+        print("Server returned ${response.statusCode}: ${response.body}");
+        throw Exception("Lỗi ${response.statusCode}: Không thể đăng nhập");
+      }
+    } catch (e) {
+      print("Repository Error: $e");
+      throw Exception("Repository Error: $e");
     }
   }
 }
