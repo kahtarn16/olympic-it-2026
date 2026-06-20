@@ -14,14 +14,6 @@ class ApiClient {
   }) async {
     final url = Uri.parse('$baseUrl$endpoint');
     final headers = _getHeaders();
-
-    // DEBUG: In ra để xem chính xác đang gửi gì lên
-    print("--- DEBUG API CALL ---");
-    print("URL: $url");
-    print("HEADERS: $headers");
-    print("BODY: ${jsonEncode(body)}");
-    print("----------------------");
-
     return await http.post(
       url,
       headers: headers,
