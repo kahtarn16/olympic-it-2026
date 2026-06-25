@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:olympic_it_project/admin/dasboard/admin_dashboard_sceen.dart';
 import 'package:olympic_it_project/core/network/api_client.dart';
 import 'package:olympic_it_project/core/storage/token_storage.dart';
 import 'package:olympic_it_project/exam/question_loading_screen.dart';
@@ -34,7 +35,7 @@ class MainApp extends StatelessWidget {
             child: MaterialApp(
               debugShowCheckedModeBanner: false,
               //home: AuthCheckWrapper(),
-              home: QuestionLoadingScreen()
+              home: AdminDashboardScreen()
             ),
           );
         },

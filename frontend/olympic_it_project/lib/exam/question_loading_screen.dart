@@ -39,7 +39,8 @@ class _QuestionLoadingScreenState extends State<QuestionLoadingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SafeArea(
+      child: Scaffold(
       backgroundColor: const Color(0xFF3B82F6),
       body: Center(
         child: Column(
@@ -197,6 +198,7 @@ class _QuestionLoadingScreenState extends State<QuestionLoadingScreen> {
           ],
         ),
       ),
+    )
     );
   }
 }
