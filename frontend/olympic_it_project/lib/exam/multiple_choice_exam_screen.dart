@@ -1,36 +1,71 @@
 import 'package:flutter/material.dart';
 import 'answer_option_tile.dart'; // Import file chứa ô đáp án vừa tách ở trên
+import 'dart:async'; // Thêm dòng này để dùng remainingSecondsr
 
 /// MÀN HÌNH CHÍNH: HIỂN THỊ CÂU HỎI TRẮC NGHIỆM ĐA LỰA CHỌN
 class MultipleChoiceExamScreen extends StatefulWidget {
   const MultipleChoiceExamScreen({super.key});
 
   @override
-  State<MultipleChoiceExamScreen> createState() => _MultipleChoiceExamScreenState();
+  State<MultipleChoiceExamScreen> createState() =>
+      _MultipleChoiceExamScreenState();
 }
 
 class _MultipleChoiceExamScreenState extends State<MultipleChoiceExamScreen> {
   // --- Các biến quản lý trạng thái bài thi từ format của bạn ---
-  int total_questions = 12;            
-  int number_question = 1;            
-  String? question_style = "TRẮC NGHIỆM"; 
-  String? difficulty = "DỄ";           
-  String? topic = "Lập trình cơ bản";   
-  int point = 10;                     
-  double time = 65;                   
+  int total_questions = 12;
+  int number_question = 1;
+  String? question_style = "TRẮC NGHIỆM";
+  String? difficulty = "DỄ";
+  String? topic = "Lập trình cơ bản";
+  int point = 10;
+  int remainingSeconds = 5;
+
+  Timer? _timer;
 
   // --- LOGIC ĐÁP ÁN ĐÚNG / SAI ---
-  final String correctAnswer = 'C';   // Giả định đáp án chính xác là 'C'
-  String? selectedAnswer;             // Lưu đáp án người dùng click vào
+  String? selectedAnswer; // Lưu đáp án người dùng click vào
+  @override
+  void initState() {
+    super.initState();
+    _starTimer();
+  }
+
+  void _starTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (remainingSeconds > 0) {
+        setState(() {
+          remainingSeconds--;
+        });
+      } else {
+        _timer?.cancel();
+        _handTimeOut();
+      }
+    });
+  }
+
+  void _handTimeOut() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Hết giờ làm bài! Hệ thống tự động ghi nhận đáp án"),
+        backgroundColor: Colors.redAccent,
+      ),
+    );
+  }
+  @override
+  void dispose(){
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, 
+      backgroundColor: Colors.white,
       body: SafeArea(
-        top: false, 
+        top: false,
         child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(), 
+          physics: const BouncingScrollPhysics(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -38,46 +73,57 @@ class _MultipleChoiceExamScreenState extends State<MultipleChoiceExamScreen> {
               ExamHeader(
                 currentQuestion: number_question,
                 totalQuestions: total_questions,
-                remainingSeconds: time.toInt(), 
+                remainingSeconds: remainingSeconds.toInt(),
               ),
 
               Padding(
-                padding: const EdgeInsets.all(16.0), 
+                padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // 2. KHU VỰC CÁC TAG THÔNG TIN
                     Wrap(
-                      spacing: 8,    
-                      runSpacing: 8, 
+                      spacing: 8,
+                      runSpacing: 8,
                       children: [
-                        ExamTag(text: 'CÂU $number_question', icon: '❓', backgroundColor: const Color(0xFFF3F4F6)),
+                        ExamTag(
+                          text: 'CÂU $number_question',
+                          icon: '❓',
+                          backgroundColor: const Color(0xFFF3F4F6),
+                        ),
                         if (question_style != null)
-                          ExamTag(text: question_style!, backgroundColor: const Color(0xFFF3F4F6)),
+                          ExamTag(
+                            text: question_style!,
+                            backgroundColor: const Color(0xFFF3F4F6),
+                          ),
                         if (difficulty != null)
                           ExamTag(
-                            text: 'Độ khó: $difficulty', 
-                            backgroundColor: const Color(0xFFFFE4E1), 
-                            textColor: const Color(0xFFFF4500)
+                            text: 'Độ khó: $difficulty',
+                            backgroundColor: const Color(0xFFFFE4E1),
+                            textColor: const Color(0xFFFF4500),
                           ),
-                        ExamTag(text: '# $point điểm', backgroundColor: const Color(0xFFF3F4F6)),
+                        ExamTag(
+                          text: '# $point điểm',
+                          backgroundColor: const Color(0xFFF3F4F6),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 12), 
-                    
+                    const SizedBox(height: 12),
+
                     if (topic != null)
                       ExamTag(
-                        text: 'Câu hỏi $topic', 
-                        backgroundColor: const Color(0xFFE0F2FE), 
-                        textColor: const Color(0xFF0369A1)
+                        text: 'Câu hỏi $topic',
+                        backgroundColor: const Color(0xFFE0F2FE),
+                        textColor: const Color(0xFF0369A1),
                       ),
-                    
+
                     const SizedBox(height: 20),
 
                     // 3. KHỐI CÂU HỎI (Ảnh tự ẩn nếu không truyền link)
                     const QuestionCard(
-                      questionText: 'Nhìn vào đoạn code Java bên dưới, kết quả xuất ra màn hình nào là ĐÚNG?',
-                      imageAssetPath: 'assets/images/image_question.png', 
+                      questionText:
+                          'Nhìn vào đoạn code Java bên dưới, kết quả xuất ra màn hình nào là ĐÚNG?',
+                      imageAssetPath: 'assets/images/image_question.png',
                     ),
 
                     const SizedBox(height: 24),
@@ -99,27 +145,29 @@ class _MultipleChoiceExamScreenState extends State<MultipleChoiceExamScreen> {
 
   /// Hàm phụ trợ (Helper) tính toán trạng thái Đúng/Sai để truyền vào UI
   Widget _buildAnswerTile({required String label, required String content}) {
-    String currentState = 'normal'; 
+    String currentState = 'normal';
 
-    if (selectedAnswer != null) {
-      if (label == selectedAnswer) {
-        currentState = (selectedAnswer == correctAnswer) ? 'correct' : 'wrong';
-      } else if (label == correctAnswer) {
-        currentState = 'correct'; 
-      }
+    if (selectedAnswer == label) {
+      currentState = 'selected';
     }
 
     return AnswerOptionTile(
       label: label,
       content: content,
-      state: currentState, 
-      onTap: () {
-        if (selectedAnswer == null) {
-          setState(() {
-            selectedAnswer = label; 
-          });
-        }
-      },
+      state: currentState,
+      onTap: remainingSeconds>0?(){
+        setState(() {
+          selectedAnswer = label;
+        });
+      }:(){
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã hết thời gian làm bài, bạn không thể đổi đáp án!'),
+            duration: Duration(seconds: 1),
+            backgroundColor: Colors.orange,
+          )
+        );
+      }
     );
   }
 }
@@ -146,11 +194,11 @@ class ExamHeader extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: const BoxDecoration(
-        color: Color(0xFF3B82F6), 
-        borderRadius: BorderRadius.all(Radius.circular(25)), 
+        color: Color(0xFF3B82F6),
+        borderRadius: BorderRadius.all(Radius.circular(25)),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Container(
             padding: const EdgeInsets.fromLTRB(12, 8, 16, 8),
@@ -163,15 +211,18 @@ class ExamHeader extends StatelessWidget {
                 const Text('❓ ', style: TextStyle(fontSize: 16)),
                 RichText(
                   text: TextSpan(
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                     children: [
                       TextSpan(
-                        text: currentQuestion.toString().padLeft(2, '0'), 
-                        style: const TextStyle(color: Colors.orange),    
+                        text: currentQuestion.toString().padLeft(2, '0'),
+                        style: const TextStyle(color: Colors.orange),
                       ),
                       TextSpan(
                         text: '/$totalQuestions',
-                        style: const TextStyle(color: Colors.black),     
+                        style: const TextStyle(color: Colors.black),
                       ),
                     ],
                   ),
@@ -183,7 +234,7 @@ class ExamHeader extends StatelessWidget {
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 36, 4, 88).withOpacity(0.5), 
+              color: const Color.fromARGB(255, 36, 4, 88).withOpacity(0.5),
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
@@ -219,16 +270,16 @@ class ExamTag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), 
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(20), 
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min, 
+        mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Text(icon!, style: const TextStyle(fontSize: 12)), 
+            Text(icon!, style: const TextStyle(fontSize: 12)),
             const SizedBox(width: 4),
           ],
           Text(
@@ -247,12 +298,12 @@ class ExamTag extends StatelessWidget {
 
 class QuestionCard extends StatelessWidget {
   final String questionText;
-  final String? imageAssetPath; 
+  final String? imageAssetPath;
 
   const QuestionCard({
     super.key,
     required this.questionText,
-    this.imageAssetPath, 
+    this.imageAssetPath,
   });
 
   @override
@@ -261,7 +312,7 @@ class QuestionCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF3F3F3), 
+        color: const Color(0xFFF3F3F3),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade200),
       ),
@@ -274,17 +325,17 @@ class QuestionCard extends StatelessWidget {
               fontSize: 16,
               fontWeight: FontWeight.bold,
               color: Colors.black,
-              height: 1.4, 
+              height: 1.4,
             ),
           ),
           if (imageAssetPath != null) ...[
-            const SizedBox(height: 16), 
+            const SizedBox(height: 16),
             ClipRRect(
-              borderRadius: BorderRadius.circular(8), 
+              borderRadius: BorderRadius.circular(8),
               child: Image.asset(
-                imageAssetPath!, 
+                imageAssetPath!,
                 width: double.infinity,
-                fit: BoxFit.contain, 
+                fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
                     height: 180,

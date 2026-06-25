@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-/// WIDGET CON: HIỂN THỊ Ô TÙY CHỌN ĐÁP ÁN (ĐÚNG TÔ XANH + v / SAI TÔ ĐỎ + x)
+/// WIDGET CON: HIỂN THỊ Ô TÙY CHỌN ĐÁP ÁN (CHỈ ĐỔI MÀU KHI ĐƯỢC CHỌN, KHÔNG DÙNG ICON)
 class AnswerOptionTile extends StatelessWidget {
   final String label;       // Chữ cái đại diện đầu câu (A, B, C, D)
   final String content;     // Nội dung chữ của câu trả lời
   final VoidCallback onTap; // Sự kiện xử lý khi người dùng ấn vào ô
-  final String state;       // Trạng thái hiển thị nhận diện: 'normal', 'correct', 'wrong'
+  final String state;       // Trạng thái hiển thị nhận diện: 'normal', 'selected'
 
   const AnswerOptionTile({
     super.key,
@@ -17,32 +17,24 @@ class AnswerOptionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Khởi tạo các giá trị màu sắc mặc định cho trạng thái thông thường (Chưa Chọn)
-    Color borderColor = Colors.black87;       
+    // 1. Khởi tạo màu sắc mặc định cho trạng thái thông thường (Chưa Chọn - normal)
+    Color borderColor = Colors.grey.shade300; 
     Color backgroundColor = Colors.white;      
     Color textColor = Colors.black87;          
-    IconData? suffixIcon;                      
-    Color? iconColor;                          
+    Color circleColor = const Color(0xFFA3A3A3); // Màu gốc của vòng tròn chứa A, B, C, D
 
-    // Cấu hình lại màu sắc dựa trên biến trạng thái hệ thống trả về
-    if (state == 'correct') {
-      borderColor = const Color(0xFF10B981);     // Viền màu Xanh lá đậm
-      backgroundColor = const Color(0xFFECFDF5); // Nền màu Xanh lá siêu nhạt
-      textColor = const Color(0xFF047857);       // Chữ màu Xanh đậm
-      suffixIcon = Icons.check_circle;           // Icon dấu tích "v" tròn ở cuối hàng
-      iconColor = const Color(0xFF10B981);       
-    } else if (state == 'wrong') {
-      borderColor = const Color(0xFFEF4444);     // Viền màu Đỏ đậm
-      backgroundColor = const Color(0xFFFEF2F2); // Nền màu Đỏ siêu nhạt
-      textColor = const Color(0xFFB91C1C);       // Chữ màu Đỏ đậm
-      suffixIcon = Icons.cancel;                 // Icon dấu chéo "x" tròn ở cuối hàng
-      iconColor = const Color(0xFFEF4444);       
+    // 2. Cấu hình màu sắc khi ô này ở trạng thái 'selected' (Đang Chọn)
+    if (state == 'selected') {
+      borderColor = const Color(0xFF3B82F6);     // Viền đổi sang Xanh Dương đậm
+      backgroundColor = const Color(0xFFEFF6FF); // Nền đổi sang Xanh Dương siêu nhạt
+      textColor = const Color(0xFF1D4ED8);       // Chữ câu trả lời đổi sang màu xanh tối
+      circleColor = const Color(0xFF3B82F6);     // Vòng tròn chữ cái cũng chuyển sang màu xanh dương
     }
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0), 
       child: InkWell(
-        onTap: onTap, 
+        onTap: onTap,
         borderRadius: BorderRadius.circular(16), 
         child: Container(
           width: double.infinity,
@@ -50,19 +42,22 @@ class AnswerOptionTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: backgroundColor,
             borderRadius: BorderRadius.circular(16), 
-            border: Border.all(color: borderColor, width: 1.5), 
+            border: Border.all(
+              color: borderColor, 
+              width: state == 'selected' ? 2.0 : 1.0, // Tăng độ dày viền khi được chọn để tạo điểm nhấn
+            ), 
           ),
           child: Row(
             children: [
-              // Vòng tròn chứa ký tự chữ cái đầu dòng (A, B, C, D)
+              // Thành phần 1: Vòng tròn chứa ký tự chữ cái đầu dòng (A, B, C, D)
               Container(
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: state == 'normal' ? const Color(0xFFA3A3A3) : borderColor,
-                  shape: BoxShape.circle, 
+                  color: circleColor,
+                  shape: BoxShape.circle,
                 ),
-                alignment: Alignment.center, 
+                alignment: Alignment.center,
                 child: Text(
                   label,
                   style: const TextStyle(
@@ -72,25 +67,20 @@ class AnswerOptionTile extends StatelessWidget {
                   ),
                 ),
               ),
+              
               const SizedBox(width: 16), 
               
-              // Khối Text chứa nội dung câu trả lời
+              // Thành phần 2: Khối Text chứa nội dung câu trả lời
               Expanded(
                 child: Text(
                   content,
                   style: TextStyle(
                     fontSize: 16,
                     color: textColor, 
-                    fontWeight: FontWeight.w600,
+                    fontWeight: state == 'selected' ? FontWeight.w700 : FontWeight.w500, // Chữ in đậm hơn khi được chọn
                   ),
                 ),
               ),
-
-              // Nếu có Icon dấu 'v' hoặc 'x' thì tiến hành vẽ nó ở CUỐI HÀNG
-              if (suffixIcon != null) ...[
-                const SizedBox(width: 8), 
-                Icon(suffixIcon, color: iconColor, size: 24), 
-              ]
             ],
           ),
         ),

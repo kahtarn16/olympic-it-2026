@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:olympic_it_project/core/network/api_client.dart';
 import 'package:olympic_it_project/core/storage/token_storage.dart';
+import 'package:olympic_it_project/exam/question_loading_screen.dart';
 import 'package:olympic_it_project/features/auth/cubit/auth_cubit.dart';
 import 'package:olympic_it_project/features/auth/data/data_sources/auth_remote_data_source.dart';
 import 'package:olympic_it_project/features/auth/data/repositories/auth_repository.dart';
@@ -32,7 +33,8 @@ class MainApp extends StatelessWidget {
             create: (context) => AuthCubit(context.read<AuthRepository>()),
             child: MaterialApp(
               debugShowCheckedModeBanner: false,
-              home: AuthCheckWrapper(),
+              //home: AuthCheckWrapper(),
+              home: QuestionLoadingScreen()
             ),
           );
         },
