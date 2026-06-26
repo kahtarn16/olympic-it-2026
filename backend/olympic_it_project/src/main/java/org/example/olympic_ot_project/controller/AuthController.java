@@ -7,6 +7,8 @@ import org.example.olympic_ot_project.dto.ApiResponse;
 import org.example.olympic_ot_project.dto.auth.forgotpassword.ForgotPasswordRequest;
 import org.example.olympic_ot_project.dto.auth.forgotpassword.ResetPasswordRequest;
 import org.example.olympic_ot_project.dto.auth.login.LoginRequest;
+import org.example.olympic_ot_project.dto.auth.login.LoginResponse;
+import org.example.olympic_ot_project.dto.auth.refreshtoken.RefreshTokenRequest;
 import org.example.olympic_ot_project.dto.auth.register.OtpRequest;
 import org.example.olympic_ot_project.dto.auth.register.RegisterRequest;
 import org.example.olympic_ot_project.dto.auth.register.ResendRequest;
@@ -51,9 +53,9 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<String>> login(@Valid @RequestBody LoginRequest request) {
-        String token = authService.login(request);
-        return ResponseEntity.ok(ApiResponse.success(token));
+    public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
+        LoginResponse loginResponse = authService.login(request);
+        return ResponseEntity.ok(ApiResponse.success(loginResponse));
     }
 
     @PostMapping("/logout")
@@ -69,5 +71,11 @@ public class AuthController {
         }
 
         return ResponseEntity.badRequest().body(ApiResponse.error("Token không hợp lệ!"));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<LoginResponse>> refresh(@RequestBody RefreshTokenRequest request) {
+        LoginResponse response = authService.refreshToken(request.getRefreshToken());
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

@@ -4,14 +4,17 @@ import lombok.RequiredArgsConstructor;
 import org.example.olympic_ot_project.dto.auth.forgotpassword.ForgotPasswordRequest;
 import org.example.olympic_ot_project.dto.auth.forgotpassword.ResetPasswordRequest;
 import org.example.olympic_ot_project.dto.auth.login.LoginRequest;
+import org.example.olympic_ot_project.dto.auth.login.LoginResponse;
 import org.example.olympic_ot_project.dto.auth.register.OtpRequest;
 import org.example.olympic_ot_project.dto.auth.register.RegisterRequest;
 import org.example.olympic_ot_project.dto.auth.register.ResendRequest;
 import org.example.olympic_ot_project.enity.ActiveEmail;
+import org.example.olympic_ot_project.enity.RefreshToken;
 import org.example.olympic_ot_project.enity.Users;
 import org.example.olympic_ot_project.exception.AppException;
 import org.example.olympic_ot_project.exception.ErrorCode;
 import org.example.olympic_ot_project.repositoy.ActiveEmailRepository;
+import org.example.olympic_ot_project.repositoy.RefreshTokenRepository;
 import org.example.olympic_ot_project.repositoy.RoleRepository;
 import org.example.olympic_ot_project.repositoy.UsersRepository;
 import org.example.olympic_ot_project.service.mailsender.EmailService;
@@ -41,6 +44,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final RedisTemplate<String, String> redisTemplate;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     public void register(RegisterRequest request) {
         if (usersRepository.findByUsername(request.getUsername()).isPresent()) {
@@ -161,28 +165,59 @@ public class AuthService {
         activeEmailRepository.delete(activeEmail);
     }
 
-    public String login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request) {
         Users user = usersRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         if (Boolean.FALSE.equals(user.getIsActive())) {
             throw new AppException(ErrorCode.USER_NOT_ACTIVE);
         }
+
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
         );
 
         UserDetails userDetails = customUserDetailsService.loadUserByUsername(request.getUsername());
-        return jwtService.genericToken(userDetails);
+        String accessToken = jwtService.genericToken(userDetails);
+
+        String refreshTokenValue = java.util.UUID.randomUUID().toString();
+
+        refreshTokenRepository.findByUser(user).ifPresent(refreshTokenRepository::delete);
+        RefreshToken refreshToken = RefreshToken.builder()
+                .user(user)
+                .refreshToken(refreshTokenValue)
+                .expiredAt(LocalDateTime.now().plusDays(7))
+                .build();
+        refreshTokenRepository.save(refreshToken);
+
+        return new LoginResponse(accessToken, refreshTokenValue);
     }
 
     public void logout(String token) {
         long expiration = jwtService.extractAllClaims(token).getExpiration().getTime();
         long now = System.currentTimeMillis();
         long ttl = (expiration - now) / 1000;
-
         if (ttl > 0) {
             redisTemplate.opsForValue().set("blacklist:" + token, "true", Duration.ofSeconds(ttl));
         }
+
+        String username = jwtService.extractAllClaims(token).getSubject();
+        Users user = usersRepository.findByUsername(username).orElseThrow();
+        refreshTokenRepository.findByUser(user).ifPresent(refreshTokenRepository::delete);
+    }
+
+    public LoginResponse refreshToken(String refreshTokenValue) {
+        RefreshToken rfToken = refreshTokenRepository.findByRefreshToken(refreshTokenValue)
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_TOKEN));
+
+        if(rfToken.getExpiredAt().isBefore(LocalDateTime.now())) {
+            refreshTokenRepository.delete(rfToken);
+            throw new AppException(ErrorCode.TOKEN_EXPIRED);
+        }
+
+        UserDetails userDetails = customUserDetailsService.loadUserByUsername(rfToken.getUser().getUsername());
+        String newAccessToken = jwtService.genericToken(userDetails);
+
+        return new LoginResponse(newAccessToken, refreshTokenValue);
     }
 }

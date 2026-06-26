@@ -16,7 +16,9 @@ public enum ErrorCode {
     ROLE_NOT_FOUND(1007, "Không tìm thấy role"),
     USER_ALREADY_ACTIVE(1008, "Tài khoản đã được xác nhận từ trước"),
     OTP_RESEND_TOO_FAST(1009, "Vui lòng đợi 1 phút"),
-    USER_NOT_ACTIVE(1010, "Người dùng chưa xác nhận tài khoản");
+    USER_NOT_ACTIVE(1010, "Người dùng chưa xác nhận tài khoản"),
+    INVALID_TOKEN(1011, "Lỗi đăng nhập"),
+    TOKEN_EXPIRED(1012, "Phiên đăng nhập hết hạn, vui lòng đăng nhập lại");
 
     private final int code;
     private final String message;
