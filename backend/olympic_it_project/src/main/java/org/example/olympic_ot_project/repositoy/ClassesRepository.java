@@ -1,4 +1,17 @@
 package org.example.olympic_ot_project.repositoy;
 
-public interface ClassRepository {
-}
+import org.example.olympic_ot_project.enity.Classes;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface ClassesRepository extends JpaRepository<Classes, Integer> {
+    boolean existsByClassNameAndAcademicYearIdAndIdNot(String className,Integer academicYearId,Integer id);
+    List<Classes> findByAcademicYearId(Integer academicYearId);
+    boolean existsByClassNameAndAcademicYearId(String className, Integer academicYearId);
+    @Query("SELECT COUNT(u) FROM Users u WHERE u.classes.id = :classId")
+    long countUsersByClassId(Integer classId);}

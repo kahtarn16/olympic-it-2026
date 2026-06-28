@@ -4,6 +4,7 @@ import org.example.olympic_ot_project.dto.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
@@ -15,6 +16,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .badRequest()
                 .body(ApiResponse.error(errorCode.getCode(), errorCode.getMessage()));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<Object>> handleValidationException(MethodArgumentNotValidException ex) {
+
+        String message = ex.getBindingResult().getFieldError() != null
+                ? ex.getBindingResult().getFieldError().getDefaultMessage()
+                : "Dữ liệu không hợp lệ";;
+
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.error(400, message));
     }
 
     @ExceptionHandler(BadCredentialsException.class)
@@ -32,4 +44,5 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode(),
                         "Lỗi hệ thống: " + ex.getMessage()));
     }
+
 }

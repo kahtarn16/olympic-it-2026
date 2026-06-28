@@ -7,11 +7,11 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-@Entity
+@Entity(name = "otp_email")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ActiveEmail {
+public class OtpEmail {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Id
     private Integer id;

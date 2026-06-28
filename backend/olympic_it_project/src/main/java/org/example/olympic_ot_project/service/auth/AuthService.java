@@ -1,24 +1,22 @@
 package org.example.olympic_ot_project.service.auth;
 
 import lombok.RequiredArgsConstructor;
+import org.example.olympic_ot_project.Core.Status;
 import org.example.olympic_ot_project.dto.auth.forgotpassword.ForgotPasswordRequest;
 import org.example.olympic_ot_project.dto.auth.forgotpassword.ResetPasswordRequest;
 import org.example.olympic_ot_project.dto.auth.login.LoginRequest;
 import org.example.olympic_ot_project.dto.auth.login.LoginResponse;
-import org.example.olympic_ot_project.dto.auth.register.OtpRequest;
-import org.example.olympic_ot_project.dto.auth.register.RegisterRequest;
-import org.example.olympic_ot_project.dto.auth.register.ResendRequest;
-import org.example.olympic_ot_project.enity.ActiveEmail;
+import org.example.olympic_ot_project.dto.auth.forgotpassword.ResendRequest;
+import org.example.olympic_ot_project.enity.OtpEmail;
 import org.example.olympic_ot_project.enity.RefreshToken;
 import org.example.olympic_ot_project.enity.Users;
 import org.example.olympic_ot_project.exception.AppException;
 import org.example.olympic_ot_project.exception.ErrorCode;
-import org.example.olympic_ot_project.repositoy.ActiveEmailRepository;
+import org.example.olympic_ot_project.repositoy.OtpEmailRepository;
 import org.example.olympic_ot_project.repositoy.RefreshTokenRepository;
 import org.example.olympic_ot_project.repositoy.RoleRepository;
 import org.example.olympic_ot_project.repositoy.UsersRepository;
 import org.example.olympic_ot_project.service.mailsender.EmailService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -36,7 +34,7 @@ import java.util.Random;
 @RequiredArgsConstructor
 public class AuthService {
     private final UsersRepository usersRepository;
-    private final ActiveEmailRepository activeEmailRepository;
+    private final OtpEmailRepository otpEmailRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final RoleRepository roleRepository;
@@ -46,82 +44,28 @@ public class AuthService {
     private final RedisTemplate<String, String> redisTemplate;
     private final RefreshTokenRepository refreshTokenRepository;
 
-    public void register(RegisterRequest request) {
-        if (usersRepository.findByUsername(request.getUsername()).isPresent()) {
-            throw new AppException(ErrorCode.USER_EXISTED);
-        }
-
-        if(usersRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new AppException(ErrorCode.USER_EXISTED);
-        }
-
-        Users user = new Users();
-        user.setUsername(request.getUsername());
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setIsActive(false);
-        user.setCreatedAt(LocalDateTime.now());
-        user.setRole(roleRepository.findById(2)
-                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND)));
-
-        usersRepository.save(user);
-
-        String otp = String.format("%06d", new Random().nextInt(1000000));
-
-        ActiveEmail activeEmail = new ActiveEmail();
-        activeEmail.setUser(user);
-        activeEmail.setOtpCode(otp);
-        activeEmail.setExpiredAt(LocalDateTime.now().plusMinutes(5));
-
-        activeEmailRepository.save(activeEmail);
-
-        emailService.sendOtpEmail(user.getEmail(), otp);
-    }
-
-    public void verifyOtp(OtpRequest request) {
-        Users user = usersRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-
-        ActiveEmail activeEmail = activeEmailRepository.findByUser(user)
-                .orElseThrow(() -> new AppException(ErrorCode.OTP_NOT_FOUND));
-
-        if (activeEmail.getExpiredAt().isBefore(LocalDateTime.now())) {
-            activeEmailRepository.delete(activeEmail);
-            throw new AppException(ErrorCode.OTP_EXPIRED);
-        }
-
-        if (request.getOtpCode() == null || !activeEmail.getOtpCode().equals(request.getOtpCode())) {
-            throw new AppException(ErrorCode.INVALID_OTP);
-        }
-
-        user.setIsActive(true);
-        usersRepository.save(user);
-
-        activeEmailRepository.delete(activeEmail);
-    }
-
     public void resendOtp(ResendRequest request) {
         Users user = usersRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        if (Boolean.TRUE.equals(user.getIsActive())) {
-            throw new AppException(ErrorCode.USER_ALREADY_ACTIVE);
+        if (user.getStatus() == Status.LOCKED) {
+            throw new AppException(ErrorCode.USER_LOCKED);
         }
 
-        activeEmailRepository.findByUser(user).ifPresent(activeEmail -> {
-            if (activeEmail.getExpiredAt().isAfter(LocalDateTime.now().plusMinutes(4))) {
+        otpEmailRepository.findByUser(user).ifPresent(otpEmail -> {
+            if (otpEmail.getExpiredAt().isAfter(LocalDateTime.now().plusMinutes(4))) {
                 throw new AppException(ErrorCode.OTP_RESEND_TOO_FAST);
             }
-            activeEmailRepository.delete(activeEmail);
+            otpEmailRepository.delete(otpEmail);
         });
 
         String otp = String.format("%06d", new Random().nextInt(1000000));
 
-        ActiveEmail activeEmail = new ActiveEmail();
-        activeEmail.setUser(user);
-        activeEmail.setOtpCode(otp);
-        activeEmail.setExpiredAt(LocalDateTime.now().plusMinutes(5));
-        activeEmailRepository.save(activeEmail);
+        OtpEmail otpEmail = new OtpEmail();
+        otpEmail.setUser(user);
+        otpEmail.setOtpCode(otp);
+        otpEmail.setExpiredAt(LocalDateTime.now().plusMinutes(5));
+        otpEmailRepository.save(otpEmail);
 
         emailService.sendOtpEmail(user.getEmail(), otp);
     }
@@ -130,15 +74,15 @@ public class AuthService {
         Users user = usersRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        activeEmailRepository.findByUser(user).ifPresent(activeEmailRepository::delete);
+        otpEmailRepository.findByUser(user).ifPresent(otpEmailRepository::delete);
 
         String otp = String.format("%06d", new Random().nextInt(1000000));
 
-        ActiveEmail activeEmail = new ActiveEmail();
-        activeEmail.setUser(user);
-        activeEmail.setOtpCode(otp);
-        activeEmail.setExpiredAt(LocalDateTime.now().plusMinutes(5));
-        activeEmailRepository.save(activeEmail);
+        OtpEmail otpEmail = new OtpEmail();
+        otpEmail.setUser(user);
+        otpEmail.setOtpCode(otp);
+        otpEmail.setExpiredAt(LocalDateTime.now().plusMinutes(5));
+        otpEmailRepository.save(otpEmail);
 
         emailService.sendResetPasswordEmail(user.getEmail(), otp);
     }
@@ -147,56 +91,62 @@ public class AuthService {
         Users user = usersRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        ActiveEmail activeEmail = activeEmailRepository.findByUser(user)
+        OtpEmail otpEmail = otpEmailRepository.findByUser(user)
                 .orElseThrow(() -> new AppException(ErrorCode.OTP_NOT_FOUND));
 
-        if (activeEmail.getExpiredAt().isBefore(LocalDateTime.now())) {
-            activeEmailRepository.delete(activeEmail);
+        if (otpEmail.getExpiredAt().isBefore(LocalDateTime.now())) {
+            otpEmailRepository.delete(otpEmail);
             throw new AppException(ErrorCode.OTP_EXPIRED);
         }
 
-        if (!activeEmail.getOtpCode().equals(request.getOtpCode())) {
+        if (!otpEmail.getOtpCode().equals(request.getOtpCode())) {
             throw new AppException(ErrorCode.INVALID_OTP);
         }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         usersRepository.save(user);
 
-        activeEmailRepository.delete(activeEmail);
+        otpEmailRepository.delete(otpEmail);
     }
 
     public LoginResponse login(LoginRequest request) {
         Users user = usersRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        if (Boolean.FALSE.equals(user.getIsActive())) {
-            throw new AppException(ErrorCode.USER_NOT_ACTIVE);
+        if (user.getStatus() != Status.ACTIVE) {
+            throw new AppException(ErrorCode.USER_LOCKED);
         }
 
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+                new UsernamePasswordAuthenticationToken(
+                        request.getUsername(),
+                        request.getPassword()
+                )
         );
 
-        UserDetails userDetails = customUserDetailsService.loadUserByUsername(request.getUsername());
+        UserDetails userDetails = customUserDetailsService.loadUserByUsername(user.getUsername());
         String accessToken = jwtService.genericToken(userDetails);
 
         String refreshTokenValue = java.util.UUID.randomUUID().toString();
 
-        refreshTokenRepository.findByUser(user).ifPresent(refreshTokenRepository::delete);
+        refreshTokenRepository.findByUser(user)
+                .ifPresent(refreshTokenRepository::delete);
+
         RefreshToken refreshToken = RefreshToken.builder()
                 .user(user)
                 .refreshToken(refreshTokenValue)
                 .expiredAt(LocalDateTime.now().plusDays(7))
                 .build();
+
         refreshTokenRepository.save(refreshToken);
 
-        return new LoginResponse(accessToken, refreshTokenValue);
+        return new LoginResponse(accessToken, refreshTokenValue, user.getRole().getRoleName(), user.getId());
     }
 
     public void logout(String token) {
         long expiration = jwtService.extractAllClaims(token).getExpiration().getTime();
         long now = System.currentTimeMillis();
-        long ttl = (expiration - now) / 1000;
+        long ttl = Math.max(0, (expiration - now) / 1000);
         if (ttl > 0) {
             redisTemplate.opsForValue().set("blacklist:" + token, "true", Duration.ofSeconds(ttl));
         }
@@ -206,9 +156,15 @@ public class AuthService {
         refreshTokenRepository.findByUser(user).ifPresent(refreshTokenRepository::delete);
     }
 
-    public LoginResponse refreshToken(String refreshTokenValue) {
+    public void refreshToken(String refreshTokenValue) {
         RefreshToken rfToken = refreshTokenRepository.findByRefreshToken(refreshTokenValue)
                 .orElseThrow(() -> new AppException(ErrorCode.INVALID_TOKEN));
+
+        Users user = rfToken.getUser();
+
+        if (user.getStatus() == Status.LOCKED) {
+            throw new AppException(ErrorCode.USER_LOCKED);
+        }
 
         if(rfToken.getExpiredAt().isBefore(LocalDateTime.now())) {
             refreshTokenRepository.delete(rfToken);
@@ -217,7 +173,5 @@ public class AuthService {
 
         UserDetails userDetails = customUserDetailsService.loadUserByUsername(rfToken.getUser().getUsername());
         String newAccessToken = jwtService.genericToken(userDetails);
-
-        return new LoginResponse(newAccessToken, refreshTokenValue);
     }
 }
