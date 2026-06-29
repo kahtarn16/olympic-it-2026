@@ -14,6 +14,8 @@ import 'package:olympic_it_project/features/auth/presentation/screens/register_s
 import 'package:olympic_it_project/features/auth/presentation/screens/reset_password.dart';
 import 'package:olympic_it_project/features/home/pressentation/screens/home_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:olympic_it_project/features/createExam/screens/create_exam_step_1_screen.dart';
+
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,7 +37,8 @@ class MainApp extends StatelessWidget {
             child: MaterialApp(
               debugShowCheckedModeBanner: false,
               //home: AuthCheckWrapper(),
-              home: AdminDashboardScreen()
+              //home: AdminDashboardScreen()
+              home: CreateExamStep1Screen(),
             ),
           );
         },

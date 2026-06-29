@@ -7,6 +7,9 @@ environment:
   sdk: ^3.12.2
 
 dependencies:
+  file_picker: ^6.1.1  # Để chọn tệp chung
+  image_picker: ^1.0.7 # Để chuyên chọn ảnh/video
+  video_player: ^2.8.2
   flutter:
     sdk: flutter
   flutter_bloc: ^9.1.1
