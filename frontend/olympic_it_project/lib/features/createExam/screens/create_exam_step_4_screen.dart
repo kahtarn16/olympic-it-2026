@@ -29,7 +29,7 @@ class CreateExamStep4Screen extends StatelessWidget {
               child: exam.questions.isEmpty
                   ? const Center(
                       child: Text(
-                        "Chưa có câu hỏi nào",
+                        "Chưa có câu hỏi nào!",
                         style: TextStyle(fontSize: 18),
                       ),
                     )
