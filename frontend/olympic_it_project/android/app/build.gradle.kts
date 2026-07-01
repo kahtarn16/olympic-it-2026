@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.olympic_it_project"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
