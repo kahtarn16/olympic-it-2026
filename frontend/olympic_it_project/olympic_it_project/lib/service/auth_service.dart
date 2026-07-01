@@ -29,7 +29,7 @@ class AuthService {
       );
       await StorageToken.instance.saveUserInfo(
         apiResponse.data!.userId,
-        apiResponse.data!.roleName
+        apiResponse.data!.roleName,
       );
       return apiResponse.data!;
     } else {
@@ -78,7 +78,7 @@ class AuthService {
   }
 
   Future<void> resetPassword(ResetPasswordRequest request) async {
-    final response  = await _api.postRaw(
+    final response = await _api.postRaw(
       "auth/reset-password",
       request.toJson(),
     );
@@ -102,6 +102,23 @@ class AuthService {
     );
 
     if (apiResponse.code != 200) {
+      throw Exception(apiResponse.message);
+    }
+  }
+
+  Future<void> logout() async {
+    final response = await _api.post("auth/logout", {});
+
+    final jsonMap = jsonDecode(response.body);
+
+    final apiResponse = ApiResponse.fromJson(
+      jsonMap,
+      (data) => data?.toString() ?? "",
+    );
+
+    if (apiResponse.code == 200) {
+      await StorageToken.instance.deleteAll();
+    } else {
       throw Exception(apiResponse.message);
     }
   }

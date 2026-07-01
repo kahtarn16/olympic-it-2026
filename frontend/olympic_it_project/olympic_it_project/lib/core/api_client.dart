@@ -23,10 +23,17 @@ class ApiClient {
 
   Future<Map<String, String>> _getHeaders() async {
     final token = await StorageToken.instance.getAccessToken();
-    return {
+
+    print("ACCESS TOKEN = $token");
+
+    final headers = {
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
     };
+
+    print(headers);
+
+    return headers;
   }
 
   Future<http.Response> postRaw(String endpoint, dynamic body) async {
@@ -105,10 +112,7 @@ class ApiClient {
 
   Future<http.Response> deleteRaw(String endpoint) async {
     return await http
-        .delete(
-          Uri.parse(_baseUrl + endpoint),
-          headers: await _getHeaders()
-        )
+        .delete(Uri.parse(_baseUrl + endpoint), headers: await _getHeaders())
         .timeout(const Duration(seconds: 15));
   }
 
