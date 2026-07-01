@@ -2,7 +2,7 @@ package org.example.olympic_ot_project.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.example.olympic_ot_project.Core.Status;
+import org.example.olympic_ot_project.Core.AccountStudentStatus;
 import org.example.olympic_ot_project.dto.student.CreateStudentRequest;
 import org.example.olympic_ot_project.dto.student.StudentResponse;
 import org.example.olympic_ot_project.dto.student.UpdateStudentRequest;
@@ -14,12 +14,14 @@ import org.example.olympic_ot_project.exception.ErrorCode;
 import org.example.olympic_ot_project.repositoy.ClassesRepository;
 import org.example.olympic_ot_project.repositoy.RoleRepository;
 import org.example.olympic_ot_project.repositoy.UsersRepository;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
+@PreAuthorize("hasRole('ADMIN')")
 @Transactional
 @RequiredArgsConstructor
 public class StudentService {
@@ -50,7 +52,7 @@ public class StudentService {
         user.setFullName(request.getFullName());
         user.setClasses(c);
         user.setRole(role);
-        user.setStatus(Status.ACTIVE);
+        user.setStatus(AccountStudentStatus.ACTIVE);
 
         usersRepository.save(user);
     }
@@ -68,6 +70,7 @@ public class StudentService {
         dto.setUsername(u.getUsername());
         dto.setEmail(u.getEmail());
         dto.setFullName(u.getFullName());
+        dto.setClassId(u.getClasses().getId());
         dto.setClassName(u.getClasses().getClassName());
         return dto;
     }
@@ -83,7 +86,6 @@ public class StudentService {
         user.setFullName(request.getFullName());
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setClasses(c);
 
         usersRepository.save(user);
@@ -94,7 +96,7 @@ public class StudentService {
         Users user = usersRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        user.setStatus(Status.LOCKED);
+        user.setStatus(AccountStudentStatus.LOCKED);
 
         usersRepository.save(user);
     }
@@ -104,7 +106,7 @@ public class StudentService {
         Users user = usersRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        user.setStatus(Status.ACTIVE);
+        user.setStatus(AccountStudentStatus.ACTIVE);
 
         usersRepository.save(user);
     }

@@ -251,8 +251,13 @@ class _StudentScreenState extends State<StudentScreen> {
       backgroundColor: const Color(0xFF3B82F6),
 
       appBar: AppBar(
+        elevation: 0,
         backgroundColor: const Color(0xFF3B82F6),
-        title: const Text("Quản lý sinh viên"),
+        centerTitle: true,
+        title: const Text(
+          "Quản lý sinh viên",
+          style: TextStyle(color: Colors.white),
+        ),
       ),
 
       floatingActionButton: FloatingActionButton(

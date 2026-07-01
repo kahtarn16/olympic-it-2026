@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:olympic_it_project/screen/admin_manager/academic_year_screen.dart';
+import 'package:olympic_it_project/screen/admin_manager/category_screen.dart';
 import 'package:olympic_it_project/screen/admin_manager/classes_screen.dart';
 import 'package:olympic_it_project/screen/admin_manager/student_screen.dart';
 import 'package:olympic_it_project/screen/auth/login_screen.dart';
@@ -257,17 +258,13 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                   _menuCard(Icons.class_, "Lớp học", Colors.orange, () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => const ClassesScreen(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const ClassesScreen()),
                     );
                   }),
                   _menuCard(Icons.people, "Sinh viên", Colors.green, () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => const StudentScreen(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const StudentScreen()),
                     );
                   }),
                   _menuCard(
@@ -277,6 +274,12 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                     () {},
                   ),
                   _menuCard(Icons.quiz, "Câu hỏi", Colors.red, () {}),
+                  _menuCard(Icons.category, "Loại câu hỏi", Colors.indigo, () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CategoryScreen()),
+                    );
+                  }),
                   _menuCard(Icons.bar_chart, "Kết quả", Colors.teal, () {}),
                 ],
               ),

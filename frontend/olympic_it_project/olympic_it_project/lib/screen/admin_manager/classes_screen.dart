@@ -150,13 +150,22 @@ class _ClassesScreenState extends State<ClassesScreen> {
             onPressed: () async {
               if (yearId == null) return;
 
-              await _classService.update(
-                item.id,
-                UpdateClassRequest(
-                  className: nameController.text.trim(),
-                  academicYearId: yearId!,
-                ),
-              );
+              try {
+                await _classService.update(
+                  item.id,
+                  UpdateClassRequest(
+                    className: nameController.text.trim(),
+                    academicYearId: yearId!,
+                  ),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(e.toString()),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
 
               Navigator.pop(context);
               loadClasses();

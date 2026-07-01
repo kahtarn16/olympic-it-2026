@@ -143,8 +143,13 @@ class _AcademicYearScreenState extends State<AcademicYearScreen> {
       backgroundColor: const Color(0xFF3B82F6),
 
       appBar: AppBar(
+        elevation: 0,
         backgroundColor: const Color(0xFF3B82F6),
-        title: const Text("Quản lý khóa học"),
+        centerTitle: true,
+        title: const Text(
+          "Quản lý khóa học",
+          style: TextStyle(color: Colors.white),
+        ),
       ),
 
       floatingActionButton: FloatingActionButton(
@@ -193,13 +198,11 @@ class _AcademicYearScreenState extends State<AcademicYearScreen> {
                                 ),
                               ),
 
-                              // EDIT
                               IconButton(
                                 icon: const Icon(Icons.edit),
                                 onPressed: () => showEditDialog(item),
                               ),
 
-                              // DELETE
                               IconButton(
                                 icon: const Icon(Icons.delete),
                                 onPressed: () => confirmDelete(item.id),
