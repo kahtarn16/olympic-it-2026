@@ -8,7 +8,7 @@ class ExamMockData {
   static const int currentQuestion = 2;
 
   // TODO: Lấy từ API — thời gian làm bài của câu này (giây, tối đa 75)
-  static const int remainingSeconds = 15;
+  static const int remainingSeconds = 100;
 
   // TODO: Lấy từ API — loại câu hỏi: 'TRẮC NGHIỆM' hoặc 'TỰ LUẬN'
   static const String questionStyle = 'TỰ LUẬN';
