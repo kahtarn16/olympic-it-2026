@@ -46,7 +46,6 @@ class StudentService {
     }
   }
 
-  // ================= UPDATE =================
   Future<void> update(int id, UpdateStudentRequest request) async {
     final response = await _api.put(
       "admin/student/$id",
