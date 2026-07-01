@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.example.olympic_ot_project.Core.Status;
+import org.example.olympic_ot_project.Core.AccountStudentStatus;
 
 import java.time.LocalDateTime;
 
@@ -43,5 +43,5 @@ public class Users {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private Status status = Status.ACTIVE;
+    private AccountStudentStatus status = AccountStudentStatus.ACTIVE;
 }

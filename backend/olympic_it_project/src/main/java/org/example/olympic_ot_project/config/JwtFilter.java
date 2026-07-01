@@ -21,44 +21,76 @@ import java.util.List;
 
 @Component
 public class JwtFilter extends OncePerRequestFilter {
+
     @Autowired
     private JwtService jwtService;
+
     @Autowired
     private CustomUserDetailsService userDetailsService;
+
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
             throws ServletException, IOException {
 
         String authHeader = request.getHeader("Authorization");
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
-            try {
-                if (Boolean.TRUE.equals(redisTemplate.hasKey("blacklist:" + token))) {
-                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    response.getWriter().write("Token has been revoked");
-                    return;
-                }
+        String token = authHeader.substring(7);
 
-                Claims claims = jwtService.extractAllClaims(token);
-                String username = claims.getSubject();
-                String role = claims.get("role", String.class);
-
-                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
-                    UsernamePasswordAuthenticationToken authToken =
-                            new UsernamePasswordAuthenticationToken(username, null, authorities);
-
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
-                }
-            } catch (Exception e) {
-                filterChain.doFilter(request, response);
+        try {
+            Boolean blacklisted = redisTemplate.hasKey("blacklist:" + token);
+            if (Boolean.TRUE.equals(blacklisted)) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"message\":\"Token revoked\"}");
                 return;
             }
+
+            Claims claims = jwtService.extractAllClaims(token);
+
+            String username = claims.getSubject();
+            String role = claims.get("role", String.class);
+
+            if (role == null || role.isBlank()) {
+                throw new RuntimeException("Role missing in JWT");
+            }
+
+            role = role.trim().toUpperCase();
+
+            if (!role.startsWith("ROLE_")) {
+                role = "ROLE_" + role;
+            }
+
+            List<GrantedAuthority> authorities =
+                    List.of(new SimpleGrantedAuthority(role));
+
+            if (username != null &&
+                    SecurityContextHolder.getContext().getAuthentication() == null) {
+
+                UsernamePasswordAuthenticationToken auth =
+                        new UsernamePasswordAuthenticationToken(
+                                username,
+                                null,
+                                authorities
+                        );
+
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            }
+
+        } catch (Exception e) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"message\":\"Invalid or expired token\"}");
+            return;
         }
 
         filterChain.doFilter(request, response);

@@ -25,7 +25,7 @@ public class ClassesController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<String>> update(@Valid @PathVariable Integer id, @RequestBody UpdateClassRequest request) {
+    public ResponseEntity<ApiResponse<String>> update(@PathVariable Integer id, @Valid @RequestBody UpdateClassRequest request) {
         classesService.updateClasses(id, request);
         return ResponseEntity.ok(ApiResponse.success("Chỉnh sửa lớp thành công"));
     }

@@ -45,21 +45,30 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<String>> logout(HttpServletRequest request) {
+
         String authHeader = request.getHeader("Authorization");
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-
-            authService.logout(token);
-
-            return ResponseEntity.ok(ApiResponse.success("Đăng xuất thành công!"));
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(ApiResponse.error("Token không hợp lệ!"));
         }
 
-        return ResponseEntity.badRequest().body(ApiResponse.error("Token không hợp lệ!"));
+        String token = authHeader.substring(7);
+
+        authService.logout(token);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("Đăng xuất thành công!")
+        );
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<ApiResponse<String>> refresh(@RequestBody RefreshTokenRequest request) {
-        return ResponseEntity.ok(ApiResponse.success("Đăng xuất thành công"));
+    public ResponseEntity<ApiResponse<LoginResponse>> refreshToken(
+            @Valid @RequestBody RefreshTokenRequest request) {
+
+        LoginResponse response = authService.refreshToken(request.getRefreshToken());
+
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

@@ -1,7 +1,8 @@
 package org.example.olympic_ot_project.service.auth;
 
+import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
-import org.example.olympic_ot_project.Core.Status;
+import org.example.olympic_ot_project.Core.AccountStudentStatus;
 import org.example.olympic_ot_project.dto.auth.forgotpassword.ForgotPasswordRequest;
 import org.example.olympic_ot_project.dto.auth.forgotpassword.ResetPasswordRequest;
 import org.example.olympic_ot_project.dto.auth.login.LoginRequest;
@@ -25,8 +26,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.Random;
 
 @Service
@@ -48,7 +49,7 @@ public class AuthService {
         Users user = usersRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        if (user.getStatus() == Status.LOCKED) {
+        if (user.getStatus() == AccountStudentStatus.LOCKED) {
             throw new AppException(ErrorCode.USER_LOCKED);
         }
 
@@ -113,7 +114,7 @@ public class AuthService {
         Users user = usersRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        if (user.getStatus() != Status.ACTIVE) {
+        if (user.getStatus() != AccountStudentStatus.ACTIVE) {
             throw new AppException(ErrorCode.USER_LOCKED);
         }
 
@@ -144,34 +145,54 @@ public class AuthService {
     }
 
     public void logout(String token) {
-        long expiration = jwtService.extractAllClaims(token).getExpiration().getTime();
-        long now = System.currentTimeMillis();
-        long ttl = Math.max(0, (expiration - now) / 1000);
-        if (ttl > 0) {
-            redisTemplate.opsForValue().set("blacklist:" + token, "true", Duration.ofSeconds(ttl));
-        }
 
-        String username = jwtService.extractAllClaims(token).getSubject();
-        Users user = usersRepository.findByUsername(username).orElseThrow();
-        refreshTokenRepository.findByUser(user).ifPresent(refreshTokenRepository::delete);
+        Claims claims = jwtService.extractAllClaims(token);
+        String username = claims.getSubject();
+
+        Users user = usersRepository.findByUsername(username)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        refreshTokenRepository.findByUser(user)
+                .ifPresent(refreshTokenRepository::delete);
+
+        Date expiration = claims.getExpiration();
+        long ttl = expiration.getTime() - System.currentTimeMillis();
+
+        if (ttl > 0) {
+            redisTemplate.opsForValue()
+                    .set("blacklist:" + token,
+                            "true",
+                            ttl,
+                            java.util.concurrent.TimeUnit.MILLISECONDS);
+        }
     }
 
-    public void refreshToken(String refreshTokenValue) {
+    public LoginResponse refreshToken(String refreshTokenValue) {
+
         RefreshToken rfToken = refreshTokenRepository.findByRefreshToken(refreshTokenValue)
                 .orElseThrow(() -> new AppException(ErrorCode.INVALID_TOKEN));
 
         Users user = rfToken.getUser();
 
-        if (user.getStatus() == Status.LOCKED) {
+        if (user.getStatus() == AccountStudentStatus.LOCKED) {
             throw new AppException(ErrorCode.USER_LOCKED);
         }
 
-        if(rfToken.getExpiredAt().isBefore(LocalDateTime.now())) {
+        if (rfToken.getExpiredAt().isBefore(LocalDateTime.now())) {
             refreshTokenRepository.delete(rfToken);
             throw new AppException(ErrorCode.TOKEN_EXPIRED);
         }
 
-        UserDetails userDetails = customUserDetailsService.loadUserByUsername(rfToken.getUser().getUsername());
-        String newAccessToken = jwtService.genericToken(userDetails);
+        UserDetails userDetails =
+                customUserDetailsService.loadUserByUsername(user.getUsername());
+
+        String accessToken = jwtService.genericToken(userDetails);
+
+        return new LoginResponse(
+                accessToken,
+                rfToken.getRefreshToken(),
+                user.getRole().getRoleName(),
+                user.getId()
+        );
     }
 }

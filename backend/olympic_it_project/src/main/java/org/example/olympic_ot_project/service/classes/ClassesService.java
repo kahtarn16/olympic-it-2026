@@ -11,11 +11,13 @@ import org.example.olympic_ot_project.exception.AppException;
 import org.example.olympic_ot_project.exception.ErrorCode;
 import org.example.olympic_ot_project.repositoy.AcademicYearRepository;
 import org.example.olympic_ot_project.repositoy.ClassesRepository;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
+@PreAuthorize("hasRole('ADMIN')")
 @Transactional
 @RequiredArgsConstructor
 public class ClassesService {
@@ -52,6 +54,10 @@ public class ClassesService {
 
         if (exists) {
             throw new AppException(ErrorCode.CLASSES_USED);
+        }
+
+        if (classRepository.existsByClassName(request.getClassName())) {
+            throw new AppException(ErrorCode.CLASS_NAME_EXISTS);
         }
 
         c.setClassName(request.getClassName());

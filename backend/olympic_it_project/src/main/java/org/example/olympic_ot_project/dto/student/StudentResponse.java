@@ -8,5 +8,6 @@ public class StudentResponse {
     private String username;
     private String email;
     private String fullName;
-    private String ClassName;
+    private String className;
+    private Integer classId;
 }

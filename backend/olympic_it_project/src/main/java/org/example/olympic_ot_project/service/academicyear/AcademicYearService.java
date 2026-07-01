@@ -8,16 +8,20 @@ import org.example.olympic_ot_project.enity.AcademicYear;
 import org.example.olympic_ot_project.exception.AppException;
 import org.example.olympic_ot_project.exception.ErrorCode;
 import org.example.olympic_ot_project.repositoy.AcademicYearRepository;
+import org.example.olympic_ot_project.repositoy.ClassesRepository;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
+@PreAuthorize("hasRole('ADMIN')")
 @Transactional
 @RequiredArgsConstructor
 public class AcademicYearService {
     final private AcademicYearRepository academicYearRepository;
+    final private ClassesRepository classesRepository;
 
     public void createAcademicYear(CreateAcademicYearRequest request) {
         if (academicYearRepository.existsByYearName(request.getAcademicYearName())) {
@@ -47,10 +51,17 @@ public class AcademicYearService {
     }
 
     public void deleteAcademicYear(Integer id) {
-        AcademicYear academicYear = academicYearRepository.findById(id)
+
+        AcademicYear year = academicYearRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.ACADEMIC_YEAR_NOT_FOUND));
 
-        academicYearRepository.delete(academicYear);
+        boolean hasClass = classesRepository.existsByAcademicYear(year);
+
+        if (hasClass) {
+            throw new AppException(ErrorCode.CANNOT_DELETE_ACADEMIC_YEAR_HAS_CLASSES);
+        }
+
+        academicYearRepository.delete(year);
     }
 
     private AcademicYearResponse toDto(AcademicYear entity) {

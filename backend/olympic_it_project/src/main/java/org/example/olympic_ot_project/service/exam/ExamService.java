@@ -1,17 +1,15 @@
-package org.example.olympic_ot_project.service;
+package org.example.olympic_ot_project.service.exam;
 
 import lombok.RequiredArgsConstructor;
+import org.example.olympic_ot_project.Core.AccountStudentStatus;
 import org.example.olympic_ot_project.Core.ExamStatus;
-import org.example.olympic_ot_project.enity.Exam;
-import org.example.olympic_ot_project.enity.ExamQuestion;
-import org.example.olympic_ot_project.enity.Question;
-import org.example.olympic_ot_project.enity.Users;
+import org.example.olympic_ot_project.Core.ParticipantStatus;
+import org.example.olympic_ot_project.dto.exam.*;
+import org.example.olympic_ot_project.dto.exam.question.RemoveQuestionRequest;
+import org.example.olympic_ot_project.enity.*;
 import org.example.olympic_ot_project.exception.AppException;
 import org.example.olympic_ot_project.exception.ErrorCode;
-import org.example.olympic_ot_project.repositoy.ExamQuestionRepository;
-import org.example.olympic_ot_project.repositoy.ExamRepository;
-import org.example.olympic_ot_project.repositoy.QuestionRepository;
-import org.example.olympic_ot_project.repositoy.UsersRepository;
+import org.example.olympic_ot_project.repositoy.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,41 +25,42 @@ public class ExamService {
     private final QuestionRepository questionRepository;
     private final ExamQuestionRepository examQuestionRepository;
     private final UsersRepository usersRepository;
+    private final ExamParticipantRepository examParticipantRepository;
 
-    public void createExam(String name, Integer createdById, boolean shuffleOption) {
+    public void createExam(CreateExamRequest request) {
 
-        Users creator = usersRepository.findById(createdById)
+        Users creator = usersRepository.findById(request.getCreatedById())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         Exam exam = new Exam();
-        exam.setName(name);
+        exam.setName(request.getName());
         exam.setCreatedBy(creator);
-        exam.setShuffleOption(shuffleOption);
+        exam.setShuffleOption(request.isShuffleOption());
         exam.setStatus(ExamStatus.WAITING);
 
         examRepository.save(exam);
     }
 
-    public void addQuestion(Integer examId, Integer questionId, Integer orderIndex) {
+    public void addQuestion(AddQuestionToExamRequest request) {
 
-        Exam exam = examRepository.findById(examId)
+        Exam exam = examRepository.findById(request.getExamId())
                 .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
 
-        Question question = questionRepository.findById(questionId)
+        Question question = questionRepository.findById(request.getQuestionId())
                 .orElseThrow(() -> new AppException(ErrorCode.QUESTION_NOT_FOUND));
 
         ExamQuestion eq = new ExamQuestion();
         eq.setExam(exam);
         eq.setQuestion(question);
-        eq.setOrderIndex(orderIndex);
+        eq.setOrderIndex(request.getOrderIndex());
 
         examQuestionRepository.save(eq);
     }
 
-    public void removeQuestion(Integer examId, Integer questionId) {
+    public void removeQuestion(RemoveQuestionRequest request) {
 
         ExamQuestion eq = examQuestionRepository
-                .findByExamIdAndQuestionId(examId, questionId)
+                .findByExamIdAndQuestionId(request.getExamId(), request.getQuestionId())
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
 
         examQuestionRepository.delete(eq);
@@ -86,5 +85,74 @@ public class ExamService {
     public List<ExamQuestion> getExamQuestions(Integer examId) {
 
         return examQuestionRepository.findByExamIdOrderByOrderIndexAsc(examId);
+    }
+
+    public void validateUserCanJoin(ValidateJoinRequest request) {
+
+        Exam exam = examRepository.findById(request.getExamId())
+                .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
+
+        if (exam.getStatus() == ExamStatus.FINISHED) {
+            throw new AppException(ErrorCode.EXAM_NOT_AVAILABLE);
+        }
+
+        Users user = usersRepository.findById(request.getUserId())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        if (user.getStatus() != AccountStudentStatus.ACTIVE) {
+            throw new AppException(ErrorCode.USER_BLOCKED);
+        }
+
+        ExamParticipant ep = examParticipantRepository
+                .findByExamIdAndUserId(request.getExamId(), request.getUserId())
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_INVITED));
+
+        if (ep.getStatus() == ParticipantStatus.FINISHED) {
+            throw new AppException(ErrorCode.EXAM_ALREADY_DONE);
+        }
+
+        if (exam.getStatus() == ExamStatus.WAITING) {
+            return; // vào phòng chờ
+        }
+
+        if (exam.getStatus() == ExamStatus.RUNNING) {
+            if (ep.getStatus() != ParticipantStatus.JOINED) {
+                ep.setStatus(ParticipantStatus.JOINED);
+                examParticipantRepository.save(ep);
+            }
+        }
+    }
+
+    public void addParticipant(AddParticipantRequest request) {
+
+        Exam exam = examRepository.findById(request.getExamId())
+                .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
+
+        Users user = usersRepository.findById(request.getUserId())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        if (user.getStatus() != AccountStudentStatus.ACTIVE) {
+            throw new AppException(ErrorCode.USER_BLOCKED);
+        }
+
+        boolean exists = examParticipantRepository
+                .findByExamIdAndUserId(request.getExamId(), request.getUserId())
+                .isPresent();
+
+        if (exists) {
+            throw new AppException(ErrorCode.USER_ALREADY_INVITED);
+        }
+
+        if (exam.getStatus() == ExamStatus.RUNNING) {
+            throw new AppException(ErrorCode.EXAM_ALREADY_STARTED);
+        }
+
+        ExamParticipant ep = new ExamParticipant();
+        ep.setExam(exam);
+        ep.setUser(user);
+        ep.setStatus(ParticipantStatus.INVITED);
+        ep.setScore(0);
+
+        examParticipantRepository.save(ep);
     }
 }

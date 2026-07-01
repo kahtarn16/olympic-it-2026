@@ -1,4 +1,4 @@
-package org.example.olympic_ot_project.service;
+package org.example.olympic_ot_project.service.student;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -82,6 +82,18 @@ public class StudentService {
 
         Classes c = classesRepository.findById(request.getClassId())
                 .orElseThrow(() -> new AppException(ErrorCode.CLASSES_NOT_FOUND));
+
+        if(usersRepository.existsByUsername(request.getUsername())) {
+            throw new AppException(ErrorCode.USERNAME_USED);
+        }
+
+        if (usersRepository.existsByEmail(request.getEmail())) {
+            throw new AppException(ErrorCode.EMAIL_USED);
+        }
+
+        if(classesRepository.existsById(request.getClassId())) {
+            throw new AppException(ErrorCode.USER_ALREADY_WITH_CLASS);
+        }
 
         user.setFullName(request.getFullName());
         user.setUsername(request.getUsername());

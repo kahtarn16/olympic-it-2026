@@ -6,7 +6,7 @@ import org.example.olympic_ot_project.dto.ApiResponse;
 import org.example.olympic_ot_project.dto.student.CreateStudentRequest;
 import org.example.olympic_ot_project.dto.student.StudentResponse;
 import org.example.olympic_ot_project.dto.student.UpdateStudentRequest;
-import org.example.olympic_ot_project.service.StudentService;
+import org.example.olympic_ot_project.service.student.StudentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,7 +30,7 @@ public class StudentController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<String>> update(@Valid @PathVariable Integer id, @RequestBody UpdateStudentRequest request) {
+    public ResponseEntity<ApiResponse<String>> update(@PathVariable Integer id, @Valid @RequestBody UpdateStudentRequest request) {
         studentService.updateStudent(id, request);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật sinh viên thành công"));
     }

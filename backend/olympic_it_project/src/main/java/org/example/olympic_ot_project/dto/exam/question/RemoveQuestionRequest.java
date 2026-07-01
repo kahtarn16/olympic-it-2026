@@ -1,4 +1,4 @@
-package org.example.olympic_ot_project.dto.exam;
+package org.example.olympic_ot_project.dto.exam.question;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;

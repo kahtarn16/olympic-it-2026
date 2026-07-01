@@ -1,8 +1,9 @@
-package org.example.olympic_ot_project.dto.exam.option;
+package org.example.olympic_ot_project.dto.exam.question;
 
 import lombok.Data;
 import org.example.olympic_ot_project.Core.QuestionLevel;
 import org.example.olympic_ot_project.Core.QuestionType;
+import org.example.olympic_ot_project.dto.exam.option.QuestionOptionResponse;
 
 import java.util.List;
 

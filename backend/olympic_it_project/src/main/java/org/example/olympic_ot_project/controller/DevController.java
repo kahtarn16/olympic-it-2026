@@ -1,7 +1,7 @@
 package org.example.olympic_ot_project.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.example.olympic_ot_project.Core.Status;
+import org.example.olympic_ot_project.Core.AccountStudentStatus;
 import org.example.olympic_ot_project.enity.Role;
 import org.example.olympic_ot_project.enity.Users;
 import org.example.olympic_ot_project.repositoy.RoleRepository;
@@ -37,7 +37,7 @@ public class DevController {
                 .orElseThrow(() -> new RuntimeException("Role not found"));
 
         u.setRole(role);
-        u.setStatus(Status.ACTIVE);
+        u.setStatus(AccountStudentStatus.ACTIVE);
 
         usersRepository.save(u);
     }

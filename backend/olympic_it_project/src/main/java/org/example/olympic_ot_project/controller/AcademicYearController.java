@@ -25,7 +25,7 @@ public class AcademicYearController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<String>> updateAcademicYear(@Valid  @PathVariable Integer id, @RequestBody UpdateAcademicYearRequest request) {
+    public ResponseEntity<ApiResponse<String>> updateAcademicYear(@PathVariable Integer id, @Valid @RequestBody UpdateAcademicYearRequest request) {
         academicYearService.updateAcademicYear(id, request);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật khóa học thành công"));
     }

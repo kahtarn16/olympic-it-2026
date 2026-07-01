@@ -1,4 +1,4 @@
-package org.example.olympic_ot_project.dto.exam;
+package org.example.olympic_ot_project.dto.exam.question;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -16,6 +16,9 @@ public class CreateQuestionRequest {
 
     @NotNull(message = "Cấp độ câu hỏi không được để trống")
     private QuestionLevel level;
+
+    @NotNull(message = "Category không được để trống")
+    private Integer categoryId;
 
     private String imageUrl;
     private String videoUrl;
