@@ -45,7 +45,7 @@ class MainApp extends StatelessWidget {
             child: MaterialApp(
               debugShowCheckedModeBanner: false,
               //home: AuthCheckWrapper(),
-              home: EssayExamScreen(),
+              home: HomeScreen(),
             ),
           );
         },

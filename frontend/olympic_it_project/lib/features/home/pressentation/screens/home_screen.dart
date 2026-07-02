@@ -10,12 +10,12 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F3FF),
+      drawer: _buildDrawer(context),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             children: [
               _buildHeader(context),
-              _buildMenu(),
               _buildBanner(),
               _buildContestInfo(),
             ],
@@ -35,65 +35,67 @@ class HomeScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Image.asset(
-            "assets/images/logo_1.png",
-            width: 55,
-            height: 55,
-          ),
-          const SizedBox(width: 12),
-
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Olympic tin học 2026",
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
+          /// Icon menu bên trái
+          Builder(
+            builder: (context) => InkWell(
+              borderRadius: BorderRadius.circular(30),
+              onTap: () {
+                Scaffold.of(context).openDrawer();
+              },
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
                 ),
-                SizedBox(height: 4),
-                Text(
-                  "Khóa công nghệ thông tin",
-                  style: TextStyle(
-                    color: Colors.blueGrey,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
+                child: const Icon(Icons.menu, color: Colors.blue, size: 28),
+              ),
             ),
           ),
 
+          /// Logo nằm giữa
+          Expanded(
+            child: Center(
+              child: Image.asset(
+                "assets/images/logo_1.png",
+                width: 65,
+                height: 65,
+              ),
+            ),
+          ),
+
+          /// Icon profile bên phải
           InkWell(
             borderRadius: BorderRadius.circular(30),
-           onTap: () {
-          Navigator.push(
-           context,
-          MaterialPageRoute(
-          builder: (context) => const ProfileScreen(),
-            ),
-           );
-           },
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              );
+            },
             child: Container(
-              width: 52,
-              height: 52,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withOpacity(0.08),
                     blurRadius: 8,
                     offset: const Offset(0, 3),
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.person,
-                color: Colors.blue,
-                size: 30,
-              ),
+              child: const Icon(Icons.person, color: Colors.blue, size: 28),
             ),
           ),
         ],
@@ -201,10 +203,7 @@ class _MenuItem extends StatelessWidget {
   final String title;
   final bool selected;
 
-  const _MenuItem({
-    required this.title,
-    this.selected = false,
-  });
+  const _MenuItem({required this.title, this.selected = false});
 
   @override
   Widget build(BuildContext context) {
@@ -217,4 +216,56 @@ class _MenuItem extends StatelessWidget {
       ),
     );
   }
+}
+
+Widget _buildDrawer(BuildContext context) {
+  return Drawer(
+    child: SafeArea(
+      child: Column(
+        children: [
+          const DrawerHeader(
+            decoration: BoxDecoration(color: Color(0xFFDCE8FF)),
+            child: Center(
+              child: Text(
+                "Olympic Tin Học 2026",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+
+          ListTile(
+            leading: const Icon(Icons.home),
+            title: const Text("Trang chủ"),
+            onTap: () {
+              Navigator.pop(context);
+            },
+          ),
+
+          ListTile(
+            leading: const Icon(Icons.emoji_events),
+            title: const Text("Cuộc thi"),
+            onTap: () {
+              Navigator.pop(context);
+            },
+          ),
+
+          ListTile(
+            leading: const Icon(Icons.rule),
+            title: const Text("Thể lệ"),
+            onTap: () {
+              Navigator.pop(context);
+            },
+          ),
+
+          ListTile(
+            leading: const Icon(Icons.calendar_month),
+            title: const Text("Lịch trình"),
+            onTap: () {
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+    ),
+  );
 }

@@ -7,7 +7,7 @@ environment:
   sdk: ^3.12.2
 
 dependencies:
-  file_picker: ^8.0.0  # Để chọn tệp chung
+  file_picker: ^12.0.0-beta.7  # Để chọn tệp chung
   image_picker: ^1.0.7 # Để chuyên chọn ảnh/video
   video_player: ^2.8.2
   chewie: ^1.8.5
