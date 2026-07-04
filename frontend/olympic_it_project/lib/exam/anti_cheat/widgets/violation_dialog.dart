@@ -294,6 +294,6 @@ class ViolationDialog extends StatelessWidget {
     'Không được thoát khỏi chế độ toàn màn hình',
     'Không được sao chép/dán nội dung',
     'Không được chia đôi màn hình',
-    'Vi phạm 3 lần sẽ bị tự động nộp bài',
+    'Vi phạm 3 lần sẽ tự động nộp bài và dừng cuộc thi',
   ];
 }
