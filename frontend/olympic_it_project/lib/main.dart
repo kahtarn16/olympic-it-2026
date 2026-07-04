@@ -6,7 +6,7 @@ import 'package:olympic_it_project/core/storage/token_storage.dart';
 import 'package:olympic_it_project/exam/UI/screens/essay_exam_screen.dart';
 import 'package:olympic_it_project/exam/UI/screens/multiple_choice_exam_screen.dart';
 import 'package:olympic_it_project/exam/UI/screens/question_loading_screen.dart';
-import 'package:olympic_it_project/exam/cubit/anti_cheat_cubit.dart';
+import 'package:olympic_it_project/exam/anti_cheat/cubit/anti_cheat_cubit.dart';
 import 'package:olympic_it_project/features/auth/cubit/auth_cubit.dart';
 import 'package:olympic_it_project/features/auth/data/data_sources/auth_remote_data_source.dart';
 import 'package:olympic_it_project/features/auth/data/repositories/auth_repository.dart';
