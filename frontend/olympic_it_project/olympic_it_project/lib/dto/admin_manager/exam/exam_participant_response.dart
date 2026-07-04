@@ -18,14 +18,14 @@ class ExamParticipantResponse {
   });
 
   factory ExamParticipantResponse.fromJson(Map<String, dynamic> json) {
-    return ExamParticipantResponse(
-      id: json['id'],
-      examId: json['exam']?['id'] ?? 0,
-      userId: json['user']?['id'] ?? 0,
-      userFullName: json['user']?['fullName'] ?? json['user']?['username'] ?? '',
-      status: json['status'] ?? '',
-      score: json['score'] ?? 0,
-      invitedAt: json['invitedAt'] ?? '',
-    );
-  }
+  return ExamParticipantResponse(
+    id: json['id'],
+    examId: json['examId'] ?? 0, 
+    userId: json['userId'] ?? 0,
+    userFullName: json['fullName'] ?? '',
+    status: json['status'] ?? '',
+    score: json['score'] ?? 0,
+    invitedAt: json['invitedAt'] ?? '',
+  );
+}
 }

@@ -15,7 +15,7 @@ class QuestionScreen extends StatefulWidget {
 class _QuestionScreenState extends State<QuestionScreen> {
   final QuestionService _questionService = QuestionService();
   final CategoryService _categoryService = CategoryService();
-  
+
   List<QuestionResponse> _questions = [];
   List<CategoryResponse> _categories = [];
   int? _selectedCategoryId;
@@ -31,7 +31,7 @@ class _QuestionScreenState extends State<QuestionScreen> {
     _loadData();
   }
 
-  Future<void> _onCategoryChanged(int? categoryId) async {
+  Future<void> _onCategoryChanged(int categoryId) async {
     setState(() {
       _selectedCategoryId = categoryId;
       _currentPage = 0;
@@ -110,14 +110,14 @@ class _QuestionScreenState extends State<QuestionScreen> {
     if (confirm == true) {
       try {
         await _questionService.delete(id);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Xóa thành công!')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Xóa thành công!')));
         _fetchQuestions(); // Cập nhật lại danh sách
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
       }
     }
   }
@@ -131,7 +131,7 @@ class _QuestionScreenState extends State<QuestionScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _fetchQuestions,
-          )
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -139,7 +139,9 @@ class _QuestionScreenState extends State<QuestionScreen> {
           // Chuyển sang màn hình Form, nếu thêm thành công thì load lại list
           final result = await Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const CreateOrUpdateQuestionScreen()),
+            MaterialPageRoute(
+              builder: (_) => const CreateOrUpdateQuestionScreen(),
+            ),
           );
           if (result == true) _fetchQuestions();
         },
@@ -151,7 +153,10 @@ class _QuestionScreenState extends State<QuestionScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               children: [
-                const Text('Lọc theo danh mục:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  'Lọc theo danh mục:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: DropdownButtonFormField<int>(
@@ -159,18 +164,20 @@ class _QuestionScreenState extends State<QuestionScreen> {
                     decoration: const InputDecoration(
                       labelText: 'Danh mục',
                       border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                     ),
-                    items: [
-                      const DropdownMenuItem(value: null, child: Text('Tất cả')),
-                      ..._categories.map(
-                        (category) => DropdownMenuItem(
-                          value: category.id,
-                          child: Text(category.name),
-                        ),
-                      ),
-                    ],
-                    onChanged: _onCategoryChanged,
+                    items: _categories.map((category) {
+                      return DropdownMenuItem(
+                        value: category.id,
+                        child: Text(category.name),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedCategoryId = value;
+                        _currentPage = 0;
+                      });
+                      _fetchQuestions();
+                    },
                   ),
                 ),
               ],
@@ -196,7 +203,7 @@ class _QuestionScreenState extends State<QuestionScreen> {
             ElevatedButton(
               onPressed: _fetchQuestions,
               child: const Text('Thử lại'),
-            )
+            ),
           ],
         ),
       );
@@ -228,7 +235,9 @@ class _QuestionScreenState extends State<QuestionScreen> {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    subtitle: Text('Loại: ${q.type.name} | Độ khó: ${q.level.name}\nDanh mục: ${q.categoryName}'),
+                    subtitle: Text(
+                      'Loại: ${q.type.name} | Độ khó: ${q.level.name}\nDanh mục: ${q.categoryName}',
+                    ),
                     isThreeLine: true,
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -239,7 +248,9 @@ class _QuestionScreenState extends State<QuestionScreen> {
                             final result = await Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => CreateOrUpdateQuestionScreen(questionId: q.id),
+                                builder: (_) => CreateOrUpdateQuestionScreen(
+                                  questionId: q.id,
+                                ),
                               ),
                             );
                             if (result == true) _fetchQuestions();
@@ -264,12 +275,16 @@ class _QuestionScreenState extends State<QuestionScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 ElevatedButton(
-                  onPressed: _currentPage > 0 ? () => _fetchQuestions(page: _currentPage - 1) : null,
+                  onPressed: _currentPage > 0
+                      ? () => _fetchQuestions(page: _currentPage - 1)
+                      : null,
                   child: const Text('Trang trước'),
                 ),
                 Text('Trang ${_currentPage + 1} / $_totalPages'),
                 ElevatedButton(
-                  onPressed: _currentPage < _totalPages - 1 ? () => _fetchQuestions(page: _currentPage + 1) : null,
+                  onPressed: _currentPage < _totalPages - 1
+                      ? () => _fetchQuestions(page: _currentPage + 1)
+                      : null,
                   child: const Text('Trang sau'),
                 ),
               ],

@@ -2,19 +2,17 @@ class ExamResponse {
   final int id;
   final String name;
   final String status;
-  final bool shuffleOption;
-  final int createdById;
   final String createdBy;
   final String createdAt;
+  final bool shuffleOption;
 
   ExamResponse({
     required this.id,
     required this.name,
     required this.status,
-    required this.shuffleOption,
-    required this.createdById,
     required this.createdBy,
     required this.createdAt,
+    required this.shuffleOption,
   });
 
   factory ExamResponse.fromJson(Map<String, dynamic> json) {
@@ -22,10 +20,9 @@ class ExamResponse {
       id: json['id'],
       name: json['name'],
       status: json['status'],
+      createdBy: json['createdBy'],
+      createdAt: json['createdAt'],
       shuffleOption: json['shuffleOption'] ?? false,
-      createdById: json['createdBy']?['id'] ?? 0,
-      createdBy: json['createdBy']?['fullName'] ?? '',
-      createdAt: json['createdAt'] ?? '',
     );
   }
 }

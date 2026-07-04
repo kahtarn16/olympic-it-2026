@@ -20,13 +20,54 @@ class _ExamScreenState extends State<ExamScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   List<ExamResponse> _exams = [];
+
+  final ScrollController _scrollController = ScrollController();
+
+  int _page = 0;
+  final int _size = 10;
+
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
   int? _currentUserId;
   bool _createShuffle = false;
+
+  Future<void> _loadMore() async {
+    if (_isLoadingMore || !_hasMore || _isLoading) return;
+
+    setState(() => _isLoadingMore = true);
+
+    try {
+      final nextPage = _page + 1;
+
+      final result = await _examService.getAllPaged(
+        page: nextPage,
+        size: _size,
+      );
+
+      setState(() {
+        _page = nextPage;
+        _exams.addAll(result.data);
+
+        _hasMore = result.data.length == _size;
+        _isLoadingMore = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingMore = false);
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _scrollController.addListener(() {
+      if (!_isLoadingMore &&
+          !_isLoading &&
+          _hasMore &&
+          _scrollController.position.extentAfter < 300) {
+        _loadMore();
+      }
+    });
   }
 
   @override
@@ -39,19 +80,26 @@ class _ExamScreenState extends State<ExamScreen> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _page = 0;
+      _exams.clear();
+      _hasMore = true;
+      _isLoadingMore = false;
     });
 
     try {
       final userId = await StorageToken.instance.getUserId();
-      final exams = await _examService.getAll();
+
+      final result = await _examService.getAllPaged(page: 0, size: _size);
+
       if (!mounted) return;
+
       setState(() {
         _currentUserId = userId;
-        _exams = exams;
+        _exams = result.data;
+        _hasMore = result.data.length == _size;
         _isLoading = false;
       });
     } catch (e) {
-      if (!mounted) return;
       setState(() {
         _errorMessage = e.toString();
         _isLoading = false;
@@ -61,75 +109,70 @@ class _ExamScreenState extends State<ExamScreen> {
 
   Future<void> _showExamDialog({ExamResponse? exam}) async {
     final isEdit = exam != null;
-    _nameController.text = exam?.name ?? '';
-    _createShuffle = exam?.shuffleOption ?? false;
+    final nameController = TextEditingController(text: exam?.name ?? '');
+    bool shuffle = exam?.shuffleOption ?? false;
 
     await showDialog<void>(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Text(isEdit ? 'Chỉnh sửa đề thi' : 'Tạo đề thi mới'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Tên đề thi'),
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: Text(isEdit ? 'Chỉnh sửa đề thi' : 'Tạo đề thi mới'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: 'Tên đề thi'),
+                  ),
+                  const SizedBox(height: 12),
+                  CheckboxListTile(
+                    value: shuffle,
+                    title: const Text('Trộn câu hỏi'),
+                    onChanged: (value) {
+                      setStateDialog(() {
+                        shuffle = value ?? false;
+                      });
+                    },
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              CheckboxListTile(
-                value: _createShuffle,
-                title: const Text('Trộn câu hỏi'),
-                onChanged: (value) {
-                  if (value == null) return;
-                  setState(() {
-                    _createShuffle = value;
-                  });
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Hủy'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (_nameController.text.trim().isEmpty) return;
-                try {
-                  if (isEdit) {
-                    await _examService.update(
-                      exam!.id,
-                      UpdateExamRequest(
-                        name: _nameController.text.trim(),
-                        shuffleOption: _createShuffle,
-                      ),
-                    );
-                  } else {
-                    if (_currentUserId == null) {
-                      throw Exception('Không xác định được tài khoản hiện tại');
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Hủy'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (nameController.text.trim().isEmpty) return;
+
+                    if (isEdit) {
+                      await _examService.update(
+                        exam!.id,
+                        UpdateExamRequest(
+                          name: nameController.text.trim(),
+                          shuffleOption: shuffle,
+                        ),
+                      );
+                    } else {
+                      await _examService.create(
+                        CreateExamRequest(
+                          name: nameController.text.trim(),
+                          createdById: _currentUserId!,
+                          shuffleOption: shuffle,
+                        ),
+                      );
                     }
-                    await _examService.create(
-                      CreateExamRequest(
-                        name: _nameController.text.trim(),
-                        createdById: _currentUserId!,
-                        shuffleOption: _createShuffle,
-                      ),
-                    );
-                  }
-                  Navigator.pop(context);
-                  _loadData();
-                } catch (e) {
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Lỗi: $e')),
-                  );
-                }
-              },
-              child: const Text('Lưu'),
-            ),
-          ],
+
+                    if (context.mounted) Navigator.pop(context);
+                    _loadData();
+                  },
+                  child: const Text('Lưu'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -162,13 +205,13 @@ class _ExamScreenState extends State<ExamScreen> {
     try {
       await _examService.delete(examId);
       _loadData();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Xóa đề thi thành công')), 
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Xóa đề thi thành công')));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
     }
   }
 
@@ -178,10 +221,7 @@ class _ExamScreenState extends State<ExamScreen> {
       appBar: AppBar(
         title: const Text('Quản lý Đề thi'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadData,
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -193,9 +233,10 @@ class _ExamScreenState extends State<ExamScreen> {
   }
 
   Widget _buildBody() {
-    if (_isLoading) {
+    if (_isLoading && _exams.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
+
     if (_errorMessage != null) {
       return Center(
         child: Padding(
@@ -203,7 +244,10 @@ class _ExamScreenState extends State<ExamScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('Có lỗi xảy ra:\n$_errorMessage', textAlign: TextAlign.center),
+              Text(
+                'Có lỗi xảy ra:\n$_errorMessage',
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _loadData,
@@ -214,6 +258,7 @@ class _ExamScreenState extends State<ExamScreen> {
         ),
       );
     }
+
     if (_exams.isEmpty) {
       return Center(
         child: Column(
@@ -230,45 +275,75 @@ class _ExamScreenState extends State<ExamScreen> {
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _loadData,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(12),
-        itemCount: _exams.length,
-        itemBuilder: (context, index) {
-          final exam = _exams[index];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 12),
-            child: ListTile(
-              title: Text(exam.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text(
-                'Trạng thái: ${exam.status}\nNgười tạo: ${exam.createdBy}\nNgày tạo: ${exam.createdAt}\nTrộn câu hỏi: ${exam.shuffleOption ? 'Có' : 'Không'}',
-              ),
-              isThreeLine: true,
-              onTap: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => ExamDetailScreen(examId: exam.id)),
+    return Stack(
+      children: [
+        RefreshIndicator(
+          onRefresh: _loadData,
+          child: ListView.builder(
+            controller: _scrollController,
+            padding: const EdgeInsets.all(12),
+            itemCount: _exams.length + (_isLoadingMore ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index >= _exams.length) {
+                return const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: CircularProgressIndicator()),
                 );
-                _loadData();
-              },
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit, color: Colors.blue),
-                    onPressed: () => _showExamDialog(exam: exam),
+              }
+
+              final exam = _exams[index];
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ListTile(
+                  title: Text(
+                    exam.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _confirmDelete(exam.id),
+                  subtitle: Text(
+                    'Trạng thái: ${exam.status}\n'
+                    'Người tạo: ${exam.createdBy}\n'
+                    'Ngày tạo: ${exam.createdAt}\n'
+                    'Trộn câu hỏi: ${exam.shuffleOption ? 'Có' : 'Không'}',
                   ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+                  isThreeLine: true,
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ExamDetailScreen(examId: exam.id),
+                      ),
+                    );
+                    _loadData();
+                  },
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.blue),
+                        onPressed: () => _showExamDialog(exam: exam),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _confirmDelete(exam.id),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+
+        // 🔥 overlay loading khi refresh (không che list hoàn toàn)
+        if (_isLoading && _exams.isNotEmpty)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: LinearProgressIndicator(),
+          ),
+      ],
     );
   }
 }

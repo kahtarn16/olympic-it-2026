@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:olympic_it_project/core/api_client.dart';
 import 'package:olympic_it_project/core/api_response.dart';
+import 'package:olympic_it_project/core/page_response.dart';
 import 'package:olympic_it_project/dto/admin_manager/exam/add_exam_question_request.dart';
 import 'package:olympic_it_project/dto/admin_manager/exam/add_participant_request.dart';
 import 'package:olympic_it_project/dto/admin_manager/exam/create_exam_request.dart';
@@ -14,18 +15,6 @@ import 'package:olympic_it_project/dto/admin_manager/exam/update_exam_request.da
 
 class ExamService {
   final _api = ApiClient.instance;
-
-  Future<List<ExamResponse>> getAll() async {
-    final response = await _api.get('admin/exam');
-    final jsonMap = safeDecode(response) as Map<String, dynamic>;
-    final apiResponse = ApiResponse<List<ExamResponse>>.fromJson(
-      jsonMap,
-      (data) => (data as List)
-          .map((e) => ExamResponse.fromJson(e as Map<String, dynamic>))
-          .toList(),
-    );
-    return apiResponse.data ?? [];
-  }
 
   Future<ExamResponse> getDetail(int id) async {
     final response = await _api.get('admin/exam/$id');
@@ -58,12 +47,18 @@ class ExamService {
   }
 
   Future<void> removeQuestion(RemoveExamQuestionRequest request) async {
-    final response = await _api.deleteWithBody('admin/exam/question', request.toJson());
+    final response = await _api.deleteWithBody(
+      'admin/exam/question',
+      request.toJson(),
+    );
     _checkResponse(response);
   }
 
   Future<void> addParticipant(AddParticipantRequest request) async {
-    final response = await _api.post('admin/exam/participant', request.toJson());
+    final response = await _api.post(
+      'admin/exam/participant',
+      request.toJson(),
+    );
     _checkResponse(response);
   }
 
@@ -73,7 +68,9 @@ class ExamService {
     final apiResponse = ApiResponse<List<ExamParticipantResponse>>.fromJson(
       jsonMap,
       (data) => (data as List)
-          .map((e) => ExamParticipantResponse.fromJson(e as Map<String, dynamic>))
+          .map(
+            (e) => ExamParticipantResponse.fromJson(e as Map<String, dynamic>),
+          )
           .toList(),
     );
     return apiResponse.data ?? [];
@@ -99,11 +96,42 @@ class ExamService {
   void _checkResponse(http.Response response) {
     if (response.body.trim().isEmpty) {
       if (response.statusCode >= 200 && response.statusCode < 300) return;
-      throw Exception('Server trả về body rỗng với status ${response.statusCode}');
+      throw Exception(
+        'Server trả về body rỗng với status ${response.statusCode}',
+      );
     }
 
     final jsonMap = jsonDecode(response.body);
     final apiResponse = ApiResponse.fromJson(jsonMap, (d) => d);
     if (apiResponse.code != 200) throw Exception(apiResponse.message);
+  }
+
+  Future<void> removeParticipant(int examId, int userId) async {
+    final response = await _api.delete(
+      'admin/exam/participant?examId=$examId&userId=$userId',
+    );
+    _checkResponse(response);
+  }
+
+  Future<PageResponse<ExamResponse>> getAllPaged({
+    required int page,
+    required int size,
+    String? keyword,
+  }) async {
+    final response = await _api.get(
+      'admin/exam?page=$page&size=$size&keyword=${keyword ?? ""}',
+    );
+
+    final json = safeDecode(response);
+
+    final api = ApiResponse<PageResponse<ExamResponse>>.fromJson(
+      json,
+      (data) => PageResponse<ExamResponse>.fromJson(
+        data,
+        (e) => ExamResponse.fromJson(e),
+      ),
+    );
+
+    return api.data!;
   }
 }
