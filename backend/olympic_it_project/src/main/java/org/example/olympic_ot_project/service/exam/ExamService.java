@@ -1,15 +1,21 @@
 package org.example.olympic_ot_project.service.exam;
 
 import lombok.RequiredArgsConstructor;
-import org.example.olympic_ot_project.Core.AccountStudentStatus;
-import org.example.olympic_ot_project.Core.ExamStatus;
-import org.example.olympic_ot_project.Core.ParticipantStatus;
+import org.example.olympic_ot_project.core.AccountStudentStatus;
+import org.example.olympic_ot_project.core.ExamStatus;
+import org.example.olympic_ot_project.core.ParticipantStatus;
 import org.example.olympic_ot_project.dto.exam.*;
+import org.example.olympic_ot_project.dto.exam.question.QuestionDetailResponse;
+import org.example.olympic_ot_project.dto.exam.question.QuestionResponse;
 import org.example.olympic_ot_project.dto.exam.question.RemoveQuestionRequest;
 import org.example.olympic_ot_project.enity.*;
 import org.example.olympic_ot_project.exception.AppException;
 import org.example.olympic_ot_project.exception.ErrorCode;
 import org.example.olympic_ot_project.repositoy.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +45,25 @@ public class ExamService {
         exam.setStatus(ExamStatus.WAITING);
 
         examRepository.save(exam);
+    }
+
+    public void updateExam(Integer examId, UpdateExamRequest request) {
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
+
+        exam.setName(request.getName());
+        exam.setShuffleOption(request.isShuffleOption());
+
+        examRepository.save(exam);
+    }
+
+    public void deleteExam(Integer examId) {
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
+
+        examQuestionRepository.deleteAll(examQuestionRepository.findByExamIdOrderByOrderIndexAsc(examId));
+        examParticipantRepository.deleteAll(examParticipantRepository.findByExamId(examId));
+        examRepository.delete(exam);
     }
 
     public void addQuestion(AddQuestionToExamRequest request) {
@@ -76,15 +101,83 @@ public class ExamService {
         examRepository.save(exam);
     }
 
-    public Exam getExamDetail(Integer examId) {
+    public DetailsExamResponse getExamDetail(Integer examId) {
 
-        return examRepository.findById(examId)
+        Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
+
+        List<ExamQuestionResponse> questions =
+                examQuestionRepository.findByExamIdOrderByOrderIndexAsc(examId)
+                        .stream()
+                        .map(eq -> {
+                            var q = eq.getQuestion();
+
+                            QuestionDetailResponse questionDto = new QuestionDetailResponse();
+                            questionDto.setId(q.getId());
+                            questionDto.setContent(q.getContent());
+                            questionDto.setAnswer(q.getAnswer());
+                            questionDto.setType(q.getType());
+                            questionDto.setLevel(q.getLevel());
+                            questionDto.setScore(q.getScore());
+                            questionDto.setTimeLimit(q.getTimeLimit());
+                            questionDto.setImageUrl(q.getImageUrl());
+                            questionDto.setVideoUrl(q.getVideoUrl());
+
+                            if (q.getCategory() != null) {
+                                questionDto.setCategoryId(q.getCategory().getId());
+                                questionDto.setCategoryName(q.getCategory().getName());
+                            }
+
+                            return new ExamQuestionResponse(
+                                    eq.getOrderIndex(),
+                                    questionDto
+                            );
+                        })
+                        .toList();
+
+        List<ExamParticipantResponse> participants =
+                examParticipantRepository.findByExamId(examId)
+                        .stream()
+                        .map(ep -> new ExamParticipantResponse(
+                                ep.getId(),
+                                ep.getUser().getId(),
+                                ep.getUser().getFullName(),
+                                ep.getUser().getClasses().getClassName(),
+                                ep.getStatus(),
+                                ep.getScore()
+                        ))
+                        .toList();
+
+        return new DetailsExamResponse(
+                exam.getId(),
+                exam.getName(),
+                exam.getStatus().name(),
+                exam.getShuffleOption(),
+                exam.getCreatedBy().getFullName(),
+                exam.getCreatedAt().toString(),
+                questions,
+                participants
+        );
     }
 
     public List<ExamQuestion> getExamQuestions(Integer examId) {
 
         return examQuestionRepository.findByExamIdOrderByOrderIndexAsc(examId);
+    }
+
+    public List<ExamParticipantResponse> getExamParticipants(Integer examId) {
+
+        return examParticipantRepository.findByExamId(examId)
+                .stream()
+                .map(ep -> new ExamParticipantResponse(
+                        ep.getId(),
+                        ep.getUser().getId(),
+                        ep.getUser().getFullName(),
+                        ep.getUser().getClasses().getClassName(),
+                        ep.getStatus(),
+                        ep.getScore()
+                ))
+                .toList();
     }
 
     public void validateUserCanJoin(ValidateJoinRequest request) {
@@ -154,5 +247,41 @@ public class ExamService {
         ep.setScore(0);
 
         examParticipantRepository.save(ep);
+    }
+
+    public void removeParticipant(Integer examId, Integer userId) {
+
+        ExamParticipant ep = examParticipantRepository
+                .findByExamIdAndUserId(examId, userId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+
+        examParticipantRepository.delete(ep);
+    }
+
+    public PageResponse<ExamListResponse> getAllExams(int page, int size, String keyword) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+
+        Page<Exam> exams = examRepository.search(keyword, pageable);
+
+        List<ExamListResponse> data = exams.getContent()
+                .stream()
+                .map(e -> new ExamListResponse(
+                        e.getId(),
+                        e.getName(),
+                        e.getStatus().name(),
+                        e.getShuffleOption(),
+                        e.getCreatedBy().getFullName(),
+                        e.getCreatedAt().toString()
+                ))
+                .toList();
+
+        return new PageResponse<>(
+                data,
+                exams.getTotalElements(),
+                exams.getTotalPages(),
+                page,
+                size
+        );
     }
 }

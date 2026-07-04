@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.example.olympic_ot_project.Core.AccountStudentStatus;
+import org.example.olympic_ot_project.core.AccountStudentStatus;
 
 import java.time.LocalDateTime;
 

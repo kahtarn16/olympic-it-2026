@@ -2,7 +2,7 @@ package org.example.olympic_ot_project.service.student;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.example.olympic_ot_project.Core.AccountStudentStatus;
+import org.example.olympic_ot_project.core.AccountStudentStatus;
 import org.example.olympic_ot_project.dto.student.CreateStudentRequest;
 import org.example.olympic_ot_project.dto.student.StudentResponse;
 import org.example.olympic_ot_project.dto.student.UpdateStudentRequest;

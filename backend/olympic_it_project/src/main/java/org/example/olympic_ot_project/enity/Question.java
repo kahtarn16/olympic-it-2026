@@ -2,8 +2,8 @@ package org.example.olympic_ot_project.enity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.example.olympic_ot_project.Core.QuestionLevel;
-import org.example.olympic_ot_project.Core.QuestionType;
+import org.example.olympic_ot_project.core.QuestionLevel;
+import org.example.olympic_ot_project.core.QuestionType;
 
 import java.util.List;
 
@@ -25,6 +25,15 @@ public class Question {
 
     @Enumerated(EnumType.STRING)
     private QuestionLevel level;
+
+    @Column(columnDefinition = "TEXT")
+    private String answer;
+
+    @Column(nullable = false)
+    private Integer score;
+
+    @Column(name = "time_limit")
+    private Integer timeLimit;
 
     private String imageUrl;
 

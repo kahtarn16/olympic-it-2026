@@ -6,6 +6,7 @@ import org.example.olympic_ot_project.dto.ApiResponse;
 import org.example.olympic_ot_project.dto.exam.option.CreateQuestionOptionRequest;
 import org.example.olympic_ot_project.dto.exam.option.UpdateQuestionOptionRequest;
 import org.example.olympic_ot_project.dto.exam.question.CreateQuestionRequest;
+import org.example.olympic_ot_project.dto.exam.question.QuestionDetailResponse;
 import org.example.olympic_ot_project.dto.exam.question.QuestionPageResponse;
 import org.example.olympic_ot_project.dto.exam.question.UpdateQuestionRequest;
 import org.example.olympic_ot_project.enity.Question;
@@ -80,5 +81,14 @@ public class QuestionController {
     ) {
         questionService.deleteOption(id);
         return ResponseEntity.ok(ApiResponse.success("Xóa đáp án thành công"));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<QuestionDetailResponse>> getDetail(
+            @PathVariable Integer id
+    ) {
+        return ResponseEntity.ok(
+                ApiResponse.success(questionService.getDetail(id))
+        );
     }
 }

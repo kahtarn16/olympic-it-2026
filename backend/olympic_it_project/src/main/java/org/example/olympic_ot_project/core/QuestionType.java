@@ -1,4 +1,4 @@
-package org.example.olympic_ot_project.Core;
+package org.example.olympic_ot_project.core;
 
 public enum QuestionType {
     MCQ_TEXT,

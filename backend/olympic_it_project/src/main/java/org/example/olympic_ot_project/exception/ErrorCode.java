@@ -37,7 +37,24 @@ public enum ErrorCode {
     OPTION_NOT_FOUND(1026, "Không tìm thấy câu trả lời"),
     CATEGORY_EXISTS(1027, "Đã có thể loại câu hỏi này"),
     CATEGORY_NOT_FOUND(1028, "Không tìm thấy thể loại câu hỏi"),
-    USER_ALREADY_WITH_CLASS(1030, "Thí sinh đã có mặt ở lớp này");
+    USER_ALREADY_WITH_CLASS(1030, "Thí sinh đã có mặt ở lớp này"),
+    MCQ_TEXT_CANNOT_HAVE_MEDIA(1031, "Không được phép chứa hình ảnh"),
+    MEDIA_REQUIRED(1032, "Câu hỏi yêu cầu hình ảnh"),
+    ESSAY_TEXT_CANNOT_HAVE_MEDIA(1033, "Không được phép chứa hình ảnh"),
+    ESSAY_DOES_NOT_HAVE_OPTION(1034, "Câu hỏi tự luận không được phép có đáp án lựa chọn"),
+    FILE_EMPTY(1035, "File không được để trống"),
+    INVALID_IMAGE_FILE(1036, "File phải là hình ảnh"),
+    INVALID_VIDEO_FILE(1037, "File phải là video"),
+    INVALID_FILE(1038, "Đường dẫn không hợp lệ"),
+    INVALID_MEDIA_SELECTION(1039, "Chỉ được chọn 1 ảnh hoặc 1 video"),
+    QUESTION_QUESTION_NOT_FOUND(1040, "Không tìm thấy câu trả lời"),
+    ANSWER_REQUIRED(1041, "Yêu cầu câu trả lời"),
+    MCQ_MUST_HAVE_FOUR_OPTIONS(1042, "Trắc nghiệm cần có 4 đáp án"),
+    MCQ_MUST_HAVE_ONE_CORRECT_OPTION(1043, "Cần 1 câu trả lời đúng"),
+    MCQ_OPTION_TYPE_INCONSISTENT(1044, "MCQ_OPTION_TYPE_INCONSISTENT"),
+    MCQ_OPTION_EMPTY(1045, "Không được phép bỏ trống câu trả lời"),
+    MCQ_OPTION_IMAGE_REQUIRED(1046, "Yêu cầu hình ảnh cho tùy chọn câu hỏi trắc nghiệm"),
+    MCQ_OPTION_TEXT_REQUIRED(1047, "Bắt buộc nhập nội dung cho tùy chọn câu hỏi trắc nghiệm.");
 
     private final int code;
     private final String message;

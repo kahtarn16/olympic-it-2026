@@ -1,7 +1,7 @@
 package org.example.olympic_ot_project.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.example.olympic_ot_project.Core.AccountStudentStatus;
+import org.example.olympic_ot_project.core.AccountStudentStatus;
 import org.example.olympic_ot_project.enity.Role;
 import org.example.olympic_ot_project.enity.Users;
 import org.example.olympic_ot_project.repositoy.RoleRepository;

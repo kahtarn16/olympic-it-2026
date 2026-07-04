@@ -4,9 +4,11 @@ import org.example.olympic_ot_project.enity.ExamParticipant;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface ExamParticipantRepository extends JpaRepository<ExamParticipant, Integer> {
     Optional<ExamParticipant> findByExamIdAndUserId(Integer examId, Integer userId);
+    List<ExamParticipant> findByExamId(Integer examId);
 }

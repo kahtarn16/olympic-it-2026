@@ -2,7 +2,7 @@ package org.example.olympic_ot_project.service.auth;
 
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
-import org.example.olympic_ot_project.Core.AccountStudentStatus;
+import org.example.olympic_ot_project.core.AccountStudentStatus;
 import org.example.olympic_ot_project.dto.auth.forgotpassword.ForgotPasswordRequest;
 import org.example.olympic_ot_project.dto.auth.forgotpassword.ResetPasswordRequest;
 import org.example.olympic_ot_project.dto.auth.login.LoginRequest;

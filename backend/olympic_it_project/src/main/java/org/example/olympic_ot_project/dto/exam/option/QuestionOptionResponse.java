@@ -7,5 +7,6 @@ public class QuestionOptionResponse {
     private Integer id;
     private Character label;
     private String contentText;
-    private boolean isCorrect;
+    private Boolean isCorrect;
+    private String imageUrl;
 }

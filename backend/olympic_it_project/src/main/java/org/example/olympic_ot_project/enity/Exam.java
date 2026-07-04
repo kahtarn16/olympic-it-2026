@@ -2,7 +2,7 @@ package org.example.olympic_ot_project.enity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.example.olympic_ot_project.Core.ExamStatus;
+import org.example.olympic_ot_project.core.ExamStatus;
 
 import java.time.LocalDateTime;
 
