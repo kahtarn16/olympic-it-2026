@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:olympic_it_project/screen/auth/login_screen.dart';
 import 'package:olympic_it_project/splash_screen.dart';
 
 void main() {

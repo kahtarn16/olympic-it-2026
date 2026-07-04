@@ -9,7 +9,6 @@ import 'package:olympic_it_project/dto/admin_manager/classes/update_class_reques
 class ClassService {
   final _api = ApiClient.instance;
 
-  /// GET ALL (có filter academicYearId)
   Future<List<ClassResponse>> getAll({int? academicYearId}) async {
     String url = "admin/classes";
 
@@ -35,7 +34,6 @@ class ClassService {
     throw Exception(apiResponse.message);
   }
 
-  /// CREATE
   Future<void> create(CreateClassRequest request) async {
     final response = await _api.post(
       "admin/classes",
@@ -54,7 +52,6 @@ class ClassService {
     }
   }
 
-  /// UPDATE
   Future<void> update(int id, UpdateClassRequest request) async {
     final response = await _api.put(
       "admin/classes/$id",
@@ -73,7 +70,6 @@ class ClassService {
     }
   }
 
-  /// DELETE
   Future<void> delete(int id) async {
     final response = await _api.delete("admin/classes/$id");
 

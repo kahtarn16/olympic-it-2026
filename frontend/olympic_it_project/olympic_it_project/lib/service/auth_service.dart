@@ -109,6 +109,14 @@ class AuthService {
   Future<void> logout() async {
     final response = await _api.post("auth/logout", {});
 
+    if (response.body.trim().isEmpty) {
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        await StorageToken.instance.deleteAll();
+        return;
+      }
+      throw Exception('Server trả về body rỗng với status ${response.statusCode}');
+    }
+
     final jsonMap = jsonDecode(response.body);
 
     final apiResponse = ApiResponse.fromJson(

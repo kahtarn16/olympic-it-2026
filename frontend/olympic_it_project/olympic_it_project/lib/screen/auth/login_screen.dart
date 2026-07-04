@@ -4,7 +4,6 @@ import 'package:olympic_it_project/screen/auth/forgot_password_screen.dart';
 import 'package:olympic_it_project/screen/home/admin_home_screen.dart';
 import 'package:olympic_it_project/screen/home/user_home_screen.dart';
 import 'package:olympic_it_project/service/auth_service.dart';
-import 'package:olympic_it_project/splash_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

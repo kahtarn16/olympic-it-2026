@@ -3,6 +3,8 @@ import 'package:flutter/widgets.dart';
 import 'package:olympic_it_project/screen/admin_manager/academic_year_screen.dart';
 import 'package:olympic_it_project/screen/admin_manager/category_screen.dart';
 import 'package:olympic_it_project/screen/admin_manager/classes_screen.dart';
+import 'package:olympic_it_project/screen/admin_manager/exam_screen.dart';
+import 'package:olympic_it_project/screen/admin_manager/question_screen.dart';
 import 'package:olympic_it_project/screen/admin_manager/student_screen.dart';
 import 'package:olympic_it_project/screen/auth/login_screen.dart';
 import 'package:olympic_it_project/service/auth_service.dart';
@@ -271,9 +273,19 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                     Icons.description,
                     "Đề thi",
                     Colors.deepPurple,
-                    () {},
+                    () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ExamScreen()),
+                      );
+                    },
                   ),
-                  _menuCard(Icons.quiz, "Câu hỏi", Colors.red, () {}),
+                  _menuCard(Icons.quiz, "Câu hỏi", Colors.red, () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const QuestionScreen()),
+                    );
+                  }),
                   _menuCard(Icons.category, "Loại câu hỏi", Colors.indigo, () {
                     Navigator.push(
                       context,

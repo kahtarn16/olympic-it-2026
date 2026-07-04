@@ -1,0 +1,109 @@
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+import 'package:olympic_it_project/core/api_client.dart';
+import 'package:olympic_it_project/core/api_response.dart';
+import 'package:olympic_it_project/dto/admin_manager/exam/add_exam_question_request.dart';
+import 'package:olympic_it_project/dto/admin_manager/exam/add_participant_request.dart';
+import 'package:olympic_it_project/dto/admin_manager/exam/create_exam_request.dart';
+import 'package:olympic_it_project/dto/admin_manager/exam/exam_participant_response.dart';
+import 'package:olympic_it_project/dto/admin_manager/exam/exam_question_response.dart';
+import 'package:olympic_it_project/dto/admin_manager/exam/exam_response.dart';
+import 'package:olympic_it_project/dto/admin_manager/exam/remove_exam_question_request.dart';
+import 'package:olympic_it_project/dto/admin_manager/exam/update_exam_request.dart';
+
+class ExamService {
+  final _api = ApiClient.instance;
+
+  Future<List<ExamResponse>> getAll() async {
+    final response = await _api.get('admin/exam');
+    final jsonMap = safeDecode(response) as Map<String, dynamic>;
+    final apiResponse = ApiResponse<List<ExamResponse>>.fromJson(
+      jsonMap,
+      (data) => (data as List)
+          .map((e) => ExamResponse.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+    return apiResponse.data ?? [];
+  }
+
+  Future<ExamResponse> getDetail(int id) async {
+    final response = await _api.get('admin/exam/$id');
+    final jsonMap = safeDecode(response) as Map<String, dynamic>;
+    final apiResponse = ApiResponse<ExamResponse>.fromJson(
+      jsonMap,
+      (data) => ExamResponse.fromJson(data as Map<String, dynamic>),
+    );
+    return apiResponse.data!;
+  }
+
+  Future<void> create(CreateExamRequest request) async {
+    final response = await _api.post('admin/exam', request.toJson());
+    _checkResponse(response);
+  }
+
+  Future<void> update(int id, UpdateExamRequest request) async {
+    final response = await _api.put('admin/exam/$id', request.toJson());
+    _checkResponse(response);
+  }
+
+  Future<void> delete(int id) async {
+    final response = await _api.delete('admin/exam/$id');
+    _checkResponse(response);
+  }
+
+  Future<void> addQuestion(AddExamQuestionRequest request) async {
+    final response = await _api.post('admin/exam/question', request.toJson());
+    _checkResponse(response);
+  }
+
+  Future<void> removeQuestion(RemoveExamQuestionRequest request) async {
+    final response = await _api.deleteWithBody('admin/exam/question', request.toJson());
+    _checkResponse(response);
+  }
+
+  Future<void> addParticipant(AddParticipantRequest request) async {
+    final response = await _api.post('admin/exam/participant', request.toJson());
+    _checkResponse(response);
+  }
+
+  Future<List<ExamParticipantResponse>> getExamParticipants(int examId) async {
+    final response = await _api.get('admin/exam/$examId/participants');
+    final jsonMap = safeDecode(response) as Map<String, dynamic>;
+    final apiResponse = ApiResponse<List<ExamParticipantResponse>>.fromJson(
+      jsonMap,
+      (data) => (data as List)
+          .map((e) => ExamParticipantResponse.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+    return apiResponse.data ?? [];
+  }
+
+  Future<List<ExamQuestionResponse>> getExamQuestions(int examId) async {
+    final response = await _api.get('admin/exam/$examId/questions');
+    final jsonMap = safeDecode(response) as Map<String, dynamic>;
+    final apiResponse = ApiResponse<List<ExamQuestionResponse>>.fromJson(
+      jsonMap,
+      (data) => (data as List)
+          .map((e) => ExamQuestionResponse.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+    return apiResponse.data ?? [];
+  }
+
+  Future<void> startExam(int examId) async {
+    final response = await _api.put('admin/exam/$examId/start', {});
+    _checkResponse(response);
+  }
+
+  void _checkResponse(http.Response response) {
+    if (response.body.trim().isEmpty) {
+      if (response.statusCode >= 200 && response.statusCode < 300) return;
+      throw Exception('Server trả về body rỗng với status ${response.statusCode}');
+    }
+
+    final jsonMap = jsonDecode(response.body);
+    final apiResponse = ApiResponse.fromJson(jsonMap, (d) => d);
+    if (apiResponse.code != 200) throw Exception(apiResponse.message);
+  }
+}
