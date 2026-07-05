@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:olympic_it_project/core/api_client.dart';
 import 'package:olympic_it_project/core/api_response.dart';
 import 'package:olympic_it_project/dto/admin_manager/category/category_request.dart';
@@ -11,10 +9,8 @@ class CategoryService {
   Future<List<CategoryResponse>> getAll() async {
     final response = await _api.get("admin/category");
 
-    final jsonMap = jsonDecode(response.body);
-
-    final apiResponse = ApiResponse<List<CategoryResponse>>.fromJson(
-      jsonMap,
+    final apiResponse = decodeApiResponse<List<CategoryResponse>>(
+      response,
       (data) => (data as List)
           .map((e) => CategoryResponse.fromJson(e))
           .toList(),
@@ -33,10 +29,8 @@ class CategoryService {
       request.toJson(),
     );
 
-    final jsonMap = jsonDecode(response.body);
-
-    final apiResponse = ApiResponse.fromJson(
-      jsonMap,
+    final apiResponse = decodeApiResponse<String>(
+      response,
       (data) => data?.toString() ?? "",
     );
 
@@ -51,10 +45,8 @@ class CategoryService {
       request.toJson(),
     );
 
-    final jsonMap = jsonDecode(response.body);
-
-    final apiResponse = ApiResponse.fromJson(
-      jsonMap,
+    final apiResponse = decodeApiResponse<String>(
+      response,
       (data) => data?.toString() ?? "",
     );
 
@@ -66,10 +58,8 @@ class CategoryService {
   Future<void> delete(int id) async {
     final response = await _api.delete("admin/category/$id");
 
-    final jsonMap = jsonDecode(response.body);
-
-    final apiResponse = ApiResponse.fromJson(
-      jsonMap,
+    final apiResponse = decodeApiResponse<String>(
+      response,
       (data) => data?.toString() ?? "",
     );
 

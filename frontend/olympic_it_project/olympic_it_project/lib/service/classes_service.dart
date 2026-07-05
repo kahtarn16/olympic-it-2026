@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:olympic_it_project/core/api_client.dart';
 import 'package:olympic_it_project/core/api_response.dart';
 import 'package:olympic_it_project/dto/admin_manager/classes/classes_response.dart';
@@ -18,10 +16,8 @@ class ClassService {
 
     final response = await _api.get(url);
 
-    final jsonMap = jsonDecode(response.body);
-
-    final apiResponse = ApiResponse<List<ClassResponse>>.fromJson(
-      jsonMap,
+    final apiResponse = decodeApiResponse<List<ClassResponse>>(
+      response,
       (data) => (data as List)
           .map((e) => ClassResponse.fromJson(e))
           .toList(),
@@ -40,10 +36,8 @@ class ClassService {
       request.toJson(),
     );
 
-    final jsonMap = jsonDecode(response.body);
-
-    final apiResponse = ApiResponse.fromJson(
-      jsonMap,
+    final apiResponse = decodeApiResponse<String>(
+      response,
       (data) => data?.toString() ?? "",
     );
 
@@ -58,10 +52,8 @@ class ClassService {
       request.toJson(),
     );
 
-    final jsonMap = jsonDecode(response.body);
-
-    final apiResponse = ApiResponse.fromJson(
-      jsonMap,
+    final apiResponse = decodeApiResponse<String>(
+      response,
       (data) => data?.toString() ?? "",
     );
 
@@ -73,10 +65,8 @@ class ClassService {
   Future<void> delete(int id) async {
     final response = await _api.delete("admin/classes/$id");
 
-    final jsonMap = jsonDecode(response.body);
-
-    final apiResponse = ApiResponse.fromJson(
-      jsonMap,
+    final apiResponse = decodeApiResponse<String>(
+      response,
       (data) => data?.toString() ?? "",
     );
 

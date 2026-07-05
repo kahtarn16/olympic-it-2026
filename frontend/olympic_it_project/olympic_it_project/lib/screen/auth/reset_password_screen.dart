@@ -3,6 +3,7 @@ import 'package:olympic_it_project/dto/auth/forgotpassword/resend_otp_request.da
 import 'package:olympic_it_project/dto/auth/forgotpassword/reset_password_request.dart';
 import 'package:olympic_it_project/screen/auth/login_screen.dart';
 import 'package:olympic_it_project/service/auth_service.dart';
+import 'package:olympic_it_project/utils/error_snackbar.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   final String email;
@@ -55,12 +56,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceAll("Exception: ", "")),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ErrorSnackbar.showError(context, e);
     }
   }
 
@@ -106,12 +102,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceAll("Exception: ", "")),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ErrorSnackbar.showError(context, e);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

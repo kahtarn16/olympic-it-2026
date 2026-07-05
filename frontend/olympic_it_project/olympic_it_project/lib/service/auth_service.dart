@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:olympic_it_project/core/api_client.dart';
 import 'package:olympic_it_project/core/api_response.dart';
 import 'package:olympic_it_project/core/storage_token.dart';
@@ -15,10 +13,9 @@ class AuthService {
 
   Future<LoginResponse> login(LoginRequest request) async {
     final response = await _api.postRaw("auth/login", request.toJson());
-    final jsonMap = jsonDecode(response.body);
 
-    final apiResponse = ApiResponse.fromJson(
-      jsonMap,
+    final apiResponse = decodeApiResponse<LoginResponse>(
+      response,
       (data) => LoginResponse.fromJson(data),
     );
 
@@ -43,10 +40,9 @@ class AuthService {
 
     final request = RefreshTokenRequest(refreshToken: oldRefreshToken);
     final response = await _api.postRaw("auth/refresh", request.toJson());
-    final jsonMap = jsonDecode(response.body);
 
-    final apiResponse = ApiResponse<LoginResponse>.fromJson(
-      jsonMap,
+    final apiResponse = decodeApiResponse<LoginResponse>(
+      response,
       (data) => LoginResponse.fromJson(data),
     );
 
@@ -66,9 +62,9 @@ class AuthService {
       'auth/forgot-password',
       request.toJson(),
     );
-    final jsonMap = jsonDecode(response.body);
-    final apiResponse = ApiResponse.fromJson(
-      jsonMap,
+
+    final apiResponse = decodeApiResponse<String>(
+      response,
       (data) => data?.toString() ?? "",
     );
 
@@ -82,9 +78,9 @@ class AuthService {
       "auth/reset-password",
       request.toJson(),
     );
-    final jsonMap = jsonDecode(response.body);
-    final apiResponse = ApiResponse.fromJson(
-      jsonMap,
+
+    final apiResponse = decodeApiResponse<String>(
+      response,
       (data) => data?.toString() ?? "",
     );
 
@@ -95,9 +91,9 @@ class AuthService {
 
   Future<void> resendOtp(ResendOtpRequest request) async {
     final response = await _api.postRaw("auth/resend-otp", request.toJson());
-    final jsonMap = jsonDecode(response.body);
-    final apiResponse = ApiResponse.fromJson(
-      jsonMap,
+
+    final apiResponse = decodeApiResponse<String>(
+      response,
       (data) => data?.toString() ?? "",
     );
 
@@ -117,10 +113,8 @@ class AuthService {
       throw Exception('Server trả về body rỗng với status ${response.statusCode}');
     }
 
-    final jsonMap = jsonDecode(response.body);
-
-    final apiResponse = ApiResponse.fromJson(
-      jsonMap,
+    final apiResponse = decodeApiResponse<String>(
+      response,
       (data) => data?.toString() ?? "",
     );
 

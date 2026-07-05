@@ -4,6 +4,7 @@ import 'package:olympic_it_project/dto/auth/forgotpassword/forgot_password_reque
 import 'package:olympic_it_project/screen/auth/login_screen.dart';
 import 'package:olympic_it_project/screen/auth/reset_password_screen.dart';
 import 'package:olympic_it_project/service/auth_service.dart';
+import 'package:olympic_it_project/utils/error_snackbar.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -56,9 +57,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst("Exception: ", ""))),
-      );
+      ErrorSnackbar.showError(context, e);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);

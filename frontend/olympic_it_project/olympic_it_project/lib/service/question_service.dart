@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:olympic_it_project/core/api_client.dart';
 import 'package:olympic_it_project/core/api_response.dart';
 import 'package:olympic_it_project/dto/admin_manager/question/create_question_option_request.dart';
@@ -21,10 +19,8 @@ class QuestionService {
     if (categoryId != null) url += "&categoryId=$categoryId";
 
     final response = await _api.get(url);
-    final jsonMap = safeDecode(response) as Map<String, dynamic>;
-
-    final apiResponse = ApiResponse<QuestionPageResponse>.fromJson(
-      jsonMap,
+    final apiResponse = decodeApiResponse<QuestionPageResponse>(
+      response,
       (data) => QuestionPageResponse.fromJson(data),
     );
 
@@ -33,10 +29,8 @@ class QuestionService {
 
   Future<QuestionDetailResponse> getDetail(int id) async {
     final response = await _api.get("admin/question/$id");
-    final jsonMap = safeDecode(response) as Map<String, dynamic>;
-
-    final apiResponse = ApiResponse<QuestionDetailResponse>.fromJson(
-      jsonMap,
+    final apiResponse = decodeApiResponse<QuestionDetailResponse>(
+      response,
       (data) => QuestionDetailResponse.fromJson(data),
     );
 
@@ -52,9 +46,7 @@ class QuestionService {
       throw Exception('Server trả về body rỗng với status ${response.statusCode}');
     }
 
-    final jsonMap = jsonDecode(response.body);
-    final apiResponse = ApiResponse.fromJson(jsonMap, (d) => d);
-
+    final apiResponse = decodeApiResponse<dynamic>(response, (d) => d);
     if (apiResponse.code != 200) throw Exception(apiResponse.message);
   }
 
@@ -67,9 +59,7 @@ class QuestionService {
       throw Exception('Server trả về body rỗng với status ${response.statusCode}');
     }
 
-    final jsonMap = jsonDecode(response.body);
-    final apiResponse = ApiResponse.fromJson(jsonMap, (d) => d);
-
+    final apiResponse = decodeApiResponse<dynamic>(response, (d) => d);
     if (apiResponse.code != 200) throw Exception(apiResponse.message);
   }
 
@@ -81,9 +71,7 @@ class QuestionService {
       throw Exception('Server trả về body rỗng với status ${response.statusCode}');
     }
 
-    final jsonMap = jsonDecode(response.body);
-    final apiResponse = ApiResponse.fromJson(jsonMap, (d) => d);
-
+    final apiResponse = decodeApiResponse<dynamic>(response, (d) => d);
     if (apiResponse.code != 200) throw Exception(apiResponse.message);
   }
 
@@ -96,9 +84,7 @@ class QuestionService {
       throw Exception('Server trả về body rỗng với status ${response.statusCode}');
     }
 
-    final jsonMap = jsonDecode(response.body);
-    final apiResponse = ApiResponse.fromJson(jsonMap, (d) => d);
-
+    final apiResponse = decodeApiResponse<dynamic>(response, (d) => d);
     if (apiResponse.code != 200) throw Exception(apiResponse.message);
   }
 
@@ -111,9 +97,7 @@ class QuestionService {
       throw Exception('Server trả về body rỗng với status ${response.statusCode}');
     }
 
-    final jsonMap = jsonDecode(response.body);
-    final apiResponse = ApiResponse.fromJson(jsonMap, (d) => d);
-
+    final apiResponse = decodeApiResponse<dynamic>(response, (d) => d);
     if (apiResponse.code != 200) throw Exception(apiResponse.message);
   }
 
@@ -126,9 +110,7 @@ class QuestionService {
       throw Exception('Server trả về body rỗng với status ${response.statusCode}');
     }
 
-    final jsonMap = jsonDecode(response.body);
-    final apiResponse = ApiResponse.fromJson(jsonMap, (d) => d);
-
+    final apiResponse = decodeApiResponse<dynamic>(response, (d) => d);
     if (apiResponse.code != 200) throw Exception(apiResponse.message);
   }
 }

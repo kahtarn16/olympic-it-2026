@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:http/http.dart' as http;
 import 'package:olympic_it_project/core/api_client.dart';
 import 'package:olympic_it_project/core/api_response.dart';
@@ -18,9 +16,8 @@ class ExamService {
 
   Future<ExamResponse> getDetail(int id) async {
     final response = await _api.get('admin/exam/$id');
-    final jsonMap = safeDecode(response) as Map<String, dynamic>;
-    final apiResponse = ApiResponse<ExamResponse>.fromJson(
-      jsonMap,
+    final apiResponse = decodeApiResponse<ExamResponse>(
+      response,
       (data) => ExamResponse.fromJson(data as Map<String, dynamic>),
     );
     return apiResponse.data!;
@@ -64,9 +61,8 @@ class ExamService {
 
   Future<List<ExamParticipantResponse>> getExamParticipants(int examId) async {
     final response = await _api.get('admin/exam/$examId/participants');
-    final jsonMap = safeDecode(response) as Map<String, dynamic>;
-    final apiResponse = ApiResponse<List<ExamParticipantResponse>>.fromJson(
-      jsonMap,
+    final apiResponse = decodeApiResponse<List<ExamParticipantResponse>>(
+      response,
       (data) => (data as List)
           .map(
             (e) => ExamParticipantResponse.fromJson(e as Map<String, dynamic>),
@@ -78,9 +74,8 @@ class ExamService {
 
   Future<List<ExamQuestionResponse>> getExamQuestions(int examId) async {
     final response = await _api.get('admin/exam/$examId/questions');
-    final jsonMap = safeDecode(response) as Map<String, dynamic>;
-    final apiResponse = ApiResponse<List<ExamQuestionResponse>>.fromJson(
-      jsonMap,
+    final apiResponse = decodeApiResponse<List<ExamQuestionResponse>>(
+      response,
       (data) => (data as List)
           .map((e) => ExamQuestionResponse.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -96,13 +91,10 @@ class ExamService {
   void _checkResponse(http.Response response) {
     if (response.body.trim().isEmpty) {
       if (response.statusCode >= 200 && response.statusCode < 300) return;
-      throw Exception(
-        'Server trả về body rỗng với status ${response.statusCode}',
-      );
+      throw Exception(safeErrorMessage(response));
     }
 
-    final jsonMap = jsonDecode(response.body);
-    final apiResponse = ApiResponse.fromJson(jsonMap, (d) => d);
+    final apiResponse = decodeApiResponse<dynamic>(response, (d) => d);
     if (apiResponse.code != 200) throw Exception(apiResponse.message);
   }
 
@@ -122,16 +114,14 @@ class ExamService {
       'admin/exam?page=$page&size=$size&keyword=${keyword ?? ""}',
     );
 
-    final json = safeDecode(response);
-
-    final api = ApiResponse<PageResponse<ExamResponse>>.fromJson(
-      json,
+    final apiResponse = decodeApiResponse<PageResponse<ExamResponse>>(
+      response,
       (data) => PageResponse<ExamResponse>.fromJson(
         data,
         (e) => ExamResponse.fromJson(e),
       ),
     );
 
-    return api.data!;
+    return apiResponse.data!;
   }
 }

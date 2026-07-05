@@ -2,16 +2,47 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart'; // 💡 BẮT BUỘC: Vá lỗi thiếu import MediaType
+import 'package:olympic_it_project/core/api_response.dart';
 import 'package:olympic_it_project/core/storage_token.dart';
 import 'package:olympic_it_project/service/auth_service.dart';
 
 /// Decode API response body safely, tránh FormatException khi server trả về body rỗng.
 dynamic safeDecode(http.Response response) {
-  if (response.statusCode >= 200 && response.statusCode < 300) {
-    final body = response.body.trim();
-    return body.isNotEmpty ? jsonDecode(body) : null;
+  final body = response.body.trim();
+  if (body.isEmpty) return null;
+  return jsonDecode(body);
+}
+
+String safeErrorMessage(http.Response response) {
+  final body = response.body.trim();
+  if (body.isEmpty) {
+    return 'Lỗi server: ${response.statusCode}';
   }
-  throw Exception('Lỗi API: ${response.statusCode}');
+
+  try {
+    final jsonMap = jsonDecode(body);
+    if (jsonMap is Map<String, dynamic>) {
+      return jsonMap['message']?.toString() ??
+          jsonMap['error']?.toString() ??
+          body;
+    }
+    return body;
+  } catch (_) {
+    return body;
+  }
+}
+
+ApiResponse<T> decodeApiResponse<T>(http.Response response, T Function(dynamic) fromJsonT) {
+  if (response.statusCode < 200 || response.statusCode >= 300) {
+    throw Exception(safeErrorMessage(response));
+  }
+
+  final jsonMap = safeDecode(response);
+  if (jsonMap == null) {
+    throw Exception('Lỗi server: ${response.statusCode}');
+  }
+
+  return ApiResponse.fromJson(jsonMap, fromJsonT);
 }
 
 class ApiClient {

@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:olympic_it_project/core/api_client.dart';
 import 'package:olympic_it_project/core/api_response.dart';
 import 'package:olympic_it_project/dto/admin_manager/academic_year/academic_year_response.dart';
@@ -12,12 +10,11 @@ class AcademicYearService {
   Future<List<AcademicYearResponse>> getAll() async {
     final response = await _api.get("admin/academic-year");
 
-    final jsonMap = jsonDecode(response.body);
-
-    final apiResponse = ApiResponse<List<AcademicYearResponse>>.fromJson(
-      jsonMap,
-      (data) =>
-          (data as List).map((e) => AcademicYearResponse.fromJson(e)).toList(),
+    final apiResponse = decodeApiResponse<List<AcademicYearResponse>>(
+      response,
+      (data) => (data as List)
+          .map((e) => AcademicYearResponse.fromJson(e))
+          .toList(),
     );
 
     if (apiResponse.code == 200 && apiResponse.data != null) {
@@ -33,9 +30,8 @@ class AcademicYearService {
       request.toJson(),
     );
 
-    final jsonMap = jsonDecode(response.body);
-    final apiResponse = ApiResponse.fromJson(
-      jsonMap,
+    final apiResponse = decodeApiResponse<String>(
+      response,
       (data) => data?.toString() ?? "",
     );
 
@@ -50,10 +46,8 @@ class AcademicYearService {
       request.toJson(),
     );
 
-    final jsonMap = jsonDecode(response.body);
-
-    final apiResponse = ApiResponse.fromJson(
-      jsonMap,
+    final apiResponse = decodeApiResponse<String>(
+      response,
       (data) => data?.toString() ?? "",
     );
 
@@ -63,16 +57,15 @@ class AcademicYearService {
   }
 
   Future<void> delete(int id) async {
-    final repsonse = await _api.delete("admin/academic-year/$id");
+    final response = await _api.delete("admin/academic-year/$id");
 
-    final jsonMap = jsonDecode(repsonse.body);
+    final apiResponse = decodeApiResponse<String>(
+      response,
+      (data) => data?.toString() ?? "",
+    );
 
-    final apiReponse = ApiResponse.fromJson(
-      jsonMap,
-      (data) => data?.toString() ?? "");
-
-    if(apiReponse.code != 200) {
-      throw Exception(apiReponse.message);
+    if (apiResponse.code != 200) {
+      throw Exception(apiResponse.message);
     }
   }
 }

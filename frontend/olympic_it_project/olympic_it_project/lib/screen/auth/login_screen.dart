@@ -4,6 +4,7 @@ import 'package:olympic_it_project/screen/auth/forgot_password_screen.dart';
 import 'package:olympic_it_project/screen/home/admin_home_screen.dart';
 import 'package:olympic_it_project/screen/home/user_home_screen.dart';
 import 'package:olympic_it_project/service/auth_service.dart';
+import 'package:olympic_it_project/utils/error_snackbar.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -58,12 +59,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceAll("Exception: ", "")),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ErrorSnackbar.showError(context, e);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

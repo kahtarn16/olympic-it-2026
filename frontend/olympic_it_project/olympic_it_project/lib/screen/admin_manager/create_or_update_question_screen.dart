@@ -12,6 +12,7 @@ import 'package:olympic_it_project/core/api_client.dart';
 import 'package:olympic_it_project/service/category_service.dart';
 import 'package:olympic_it_project/service/question_service.dart';
 import 'package:olympic_it_project/service/upload_service.dart';
+import 'package:olympic_it_project/utils/error_snackbar.dart';
 
 class CreateOrUpdateQuestionScreen extends StatefulWidget {
   final int? questionId;
@@ -79,6 +80,34 @@ class _CreateOrUpdateQuestionScreenState
       (_questionVideoFile != null ||
           (_questionVideoUrl != null && _questionVideoUrl!.isNotEmpty));
 
+  String _getQuestionTypeLabel(QuestionType type) {
+    switch (type) {
+      case QuestionType.MCQ_TEXT:
+        return 'Trắc nghiệm chữ (MCQ)';
+      case QuestionType.MCQ_MEDIA:
+        return 'Trắc nghiệm ảnh/video';
+      case QuestionType.ESSAY_TEXT:
+        return 'Tự luận chữ';
+      case QuestionType.ESSAY_MEDIA:
+        return 'Tự luận ảnh/video';
+      default:
+        return type.name;
+    }
+  }
+
+  String _getQuestionLevelLabel(QuestionLevel level) {
+    switch (level) {
+      case QuestionLevel.EASY:
+        return 'Dễ';
+      case QuestionLevel.MEDIUM:
+        return 'Trung bình';
+      case QuestionLevel.HARD:
+        return 'Khó';
+      default:
+        return level.name;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -113,12 +142,7 @@ class _CreateOrUpdateQuestionScreenState
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Không tải được danh mục: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ErrorSnackbar.showError(context, e);
     }
   }
 
@@ -163,12 +187,7 @@ class _CreateOrUpdateQuestionScreenState
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Không tải được chi tiết: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ErrorSnackbar.showError(context, e);
     } finally {
       if (!mounted) return;
       setState(() {
@@ -226,18 +245,17 @@ class _CreateOrUpdateQuestionScreenState
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Tải file thành công!'),
+          content: Text(
+            'Tải file thành công!',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
         ),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lỗi tải file: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ErrorSnackbar.showError(context, 'Lỗi tải file: $e');
     } finally {
       if (!mounted) return;
       setState(() {
@@ -370,12 +388,7 @@ class _CreateOrUpdateQuestionScreenState
         _isSubmitting = false;
         _isUploadingMedia = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Tải media thất bại: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ErrorSnackbar.showError(context, 'Tải media thất bại: $e');
       return;
     } finally {
       if (mounted) {
@@ -444,19 +457,16 @@ class _CreateOrUpdateQuestionScreenState
         SnackBar(
           content: Text(
             isEditMode ? 'Cập nhật thành công!' : 'Tạo câu hỏi thành công!',
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
         ),
       );
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lưu thất bại: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ErrorSnackbar.showError(context, 'Lưu thất bại: $e');
     } finally {
       if (!mounted) return;
       setState(() {
@@ -465,39 +475,129 @@ class _CreateOrUpdateQuestionScreenState
     }
   }
 
+  InputDecoration _customInputDecoration({
+    required String labelText,
+    IconData? prefixIcon,
+  }) {
+    return InputDecoration(
+      labelText: labelText,
+      labelStyle: const TextStyle(
+        color: Color(0xFF64748B),
+        fontWeight: FontWeight.w600,
+        fontSize: 14,
+      ),
+      filled: true,
+      fillColor:
+          Colors.white, // Đổi ruột ô nhập liệu sang trắng tinh cho sáng sủa
+      prefixIcon: prefixIcon != null
+          ? Icon(prefixIcon, color: const Color(0xFF2563EB), size: 20)
+          : null,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      alignLabelWithHint: true,
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.red, width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.red, width: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(isEditMode ? 'Chỉnh sửa câu hỏi' : 'Tạo câu hỏi mới'),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF0F172A),
+        centerTitle: true,
+        title: Text(
+          isEditMode ? 'Chỉnh sửa câu hỏi' : 'Tạo câu hỏi mới',
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            letterSpacing: -0.5,
+          ),
+        ),
       ),
       body: Stack(
         children: [
           SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+            physics: const BouncingScrollPhysics(),
             child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildGeneralCard(),
-                  const SizedBox(height: 12),
-                  if (isMediaQuestion) _buildMediaCard(),
+                  if (isMediaQuestion) ...[
+                    const SizedBox(height: 14),
+                    _buildMediaCard(),
+                  ],
                   if (isMcqQuestion) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
                     _buildOptionsCard(),
                   ],
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    height: 50,
+                  const SizedBox(height: 24),
+                  Container(
+                    height: 54,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF2563EB).withOpacity(0.3),
+                          blurRadius: 14,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
                     child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
                       onPressed:
                           _isSubmitting || _isUploadingMedia || _isLoading
                           ? null
                           : _submitForm,
                       child: _isSubmitting
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : Text(isEditMode ? 'LƯU CẬP NHẬT' : 'TẠO CÂU HỎI'),
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 3,
+                              ),
+                            )
+                          : Text(
+                              isEditMode ? 'LƯU CẬP NHẬT' : 'TẠO CÂU HỎI',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -507,18 +607,34 @@ class _CreateOrUpdateQuestionScreenState
           ),
           if (_isLoading || _isUploadingMedia)
             Container(
-              color: Colors.black.withOpacity(0.3),
-              child: const Center(
+              color: const Color(0xFF0F172A).withOpacity(0.4),
+              child: Center(
                 child: Card(
-                  margin: EdgeInsets.all(24),
+                  margin: const EdgeInsets.all(32),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                   child: Padding(
-                    padding: EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(24),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 12),
-                        Text('Đang xử lý...'),
+                        const CircularProgressIndicator(
+                          color: Color(0xFF2563EB),
+                          strokeWidth: 4,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          _isLoading
+                              ? 'Đang tải thông tin...'
+                              : 'Đang xử lý...',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: Color(0xFF1E293B),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -532,32 +648,89 @@ class _CreateOrUpdateQuestionScreenState
 
   Widget _buildGeneralCard() {
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      color: const Color(0xFFF8FAFC),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: Color(0xFFE2E8F0)),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Thông tin câu hỏi',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                Container(
+                  width: 4,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2563EB),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Thông tin câu hỏi',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
             Row(
               children: [
                 Expanded(
                   child: DropdownButtonFormField<QuestionType>(
                     value: _selectedType,
-                    decoration: const InputDecoration(
-                      labelText: 'Loại câu hỏi',
-                      border: OutlineInputBorder(),
+                    dropdownColor: Colors.white,
+                    isExpanded:
+                        true, // 👈 Thêm cái này để Dropdown chiếm hết không gian ô
+                    icon: const Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: Color(0xFF64748B),
                     ),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E293B),
+                      fontSize: 14,
+                    ),
+                    decoration: _customInputDecoration(
+                      labelText: 'Loại câu hỏi',
+                    ),
+                    selectedItemBuilder: (BuildContext context) {
+                      return QuestionType.values.map<Widget>((
+                        QuestionType type,
+                      ) {
+                        // 👈 Bọc Expanded ở đây để chữ dài tự động xuống dòng hoặc cắt bớt, không làm sập layout Row
+                        return Expanded(
+                          child: Text(
+                            _getQuestionTypeLabel(type),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }).toList();
+                    },
                     items: QuestionType.values
                         .map(
                           (type) => DropdownMenuItem(
                             value: type,
-                            child: Text(type.name),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Text(
+                                _getQuestionTypeLabel(type),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                  color: Color(0xFF1E293B),
+                                ),
+                              ),
+                            ),
                           ),
                         )
                         .toList(),
@@ -578,15 +751,48 @@ class _CreateOrUpdateQuestionScreenState
                 Expanded(
                   child: DropdownButtonFormField<QuestionLevel>(
                     value: _selectedLevel,
-                    decoration: const InputDecoration(
-                      labelText: 'Độ khó',
-                      border: OutlineInputBorder(),
+                    dropdownColor: Colors.white,
+                    isExpanded:
+                        true, // 👈 Thêm cái này để Dropdown chiếm hết không gian ô
+                    icon: const Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: Color(0xFF64748B),
                     ),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E293B),
+                      fontSize: 14,
+                    ),
+                    decoration: _customInputDecoration(labelText: 'Độ khó'),
+                    selectedItemBuilder: (BuildContext context) {
+                      return QuestionLevel.values.map<Widget>((
+                        QuestionLevel level,
+                      ) {
+                        // 👈 Bọc Expanded tương tự cho ô Độ khó
+                        return Expanded(
+                          child: Text(
+                            _getQuestionLevelLabel(level),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }).toList();
+                    },
                     items: QuestionLevel.values
                         .map(
                           (level) => DropdownMenuItem(
                             value: level,
-                            child: Text(level.name),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Text(
+                                _getQuestionLevelLabel(level),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                  color: Color(0xFF1E293B),
+                                ),
+                              ),
+                            ),
                           ),
                         )
                         .toList(),
@@ -603,42 +809,35 @@ class _CreateOrUpdateQuestionScreenState
               controller: _contentCtrl,
               minLines: 3,
               maxLines: 6,
-              decoration: const InputDecoration(
-                labelText: 'Nội dung câu hỏi',
-                border: OutlineInputBorder(),
-                alignLabelWithHint: true,
-              ),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+              decoration: _customInputDecoration(labelText: 'Nội dung câu hỏi'),
               validator: (value) {
                 if (value == null || value.trim().isEmpty)
                   return 'Vui lòng nhập nội dung.';
                 return null;
               },
             ),
-            const SizedBox(height: 16),
-            if (isEssayQuestion)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TextFormField(
-                    controller: _answerCtrl,
-                    minLines: 2,
-                    maxLines: 4,
-                    decoration: const InputDecoration(
-                      labelText: 'Đáp án gợi ý',
-                      border: OutlineInputBorder(),
-                      alignLabelWithHint: true,
-                    ),
-                    validator: (value) {
-                      if (isEssayQuestion &&
-                          (value == null || value.trim().isEmpty)) {
-                        return 'Tự luận cần có đáp án gợi ý.';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                ],
+            if (isEssayQuestion) ...[
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _answerCtrl,
+                minLines: 2,
+                maxLines: 4,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
+                decoration: _customInputDecoration(labelText: 'Đáp án gợi ý'),
+                validator: (value) {
+                  if (isEssayQuestion &&
+                      (value == null || value.trim().isEmpty)) {
+                    return 'Tự luận cần có đáp án gợi ý.';
+                  }
+                  return null;
+                },
               ),
+            ],
+            const SizedBox(height: 16),
             _buildCategoryField(),
             const SizedBox(height: 16),
             Row(
@@ -647,9 +846,13 @@ class _CreateOrUpdateQuestionScreenState
                   child: TextFormField(
                     controller: _scoreCtrl,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    decoration: _customInputDecoration(
                       labelText: 'Điểm',
-                      border: OutlineInputBorder(),
+                      prefixIcon: Icons.star_rounded,
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty)
@@ -665,9 +868,13 @@ class _CreateOrUpdateQuestionScreenState
                   child: TextFormField(
                     controller: _timeLimitCtrl,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    decoration: _customInputDecoration(
                       labelText: 'Thời gian (s)',
-                      border: OutlineInputBorder(),
+                      prefixIcon: Icons.timer_rounded,
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty)
@@ -689,15 +896,41 @@ class _CreateOrUpdateQuestionScreenState
   Widget _buildCategoryField() {
     return DropdownButtonFormField<int>(
       value: _selectedCategoryId,
-      decoration: const InputDecoration(
-        labelText: 'Danh mục',
-        border: OutlineInputBorder(),
+      dropdownColor:
+          Colors.white, // ✨ Đã sửa: Nền danh sách xổ xuống màu trắng sạch sẽ
+      icon: const Icon(
+        Icons.keyboard_arrow_down_rounded,
+        color: Color(0xFF64748B),
       ),
+      style: const TextStyle(
+        fontWeight: FontWeight.bold,
+        color: Color(0xFF1E293B),
+        fontSize: 14,
+      ),
+      decoration: _customInputDecoration(
+        labelText: 'Danh mục',
+        prefixIcon: Icons.folder_special_rounded,
+      ),
+      selectedItemBuilder: (BuildContext context) {
+        return _categories.map<Widget>((cat) {
+          return Text(cat.name, maxLines: 1, overflow: TextOverflow.ellipsis);
+        }).toList();
+      },
       items: _categories
           .map(
             (category) => DropdownMenuItem(
               value: category.id,
-              child: Text(category.name),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Text(
+                  category.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+              ),
             ),
           )
           .toList(),
@@ -715,45 +948,93 @@ class _CreateOrUpdateQuestionScreenState
 
   Widget _buildMediaCard() {
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      color: const Color(0xFFF8FAFC),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: Color(0xFFE2E8F0)),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Media',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                Container(
+                  width: 4,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3B82F6),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Media',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            if (_hasQuestionMedia) _buildQuestionMediaPreview(),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
+            if (_hasQuestionMedia) ...[
+              _buildQuestionMediaPreview(),
+              const SizedBox(height: 14),
+            ],
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFEFF6FF),
+                      foregroundColor: const Color(0xFF2563EB),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                     onPressed:
                         _hasBothQuestionMedia ||
                             _questionVideoUrl != null ||
                             _questionVideoFile != null
                         ? null
                         : () => _pickMedia(isQuestion: true, isVideo: false),
-                    icon: const Icon(Icons.image),
-                    label: const Text('Chọn ảnh'),
+                    icon: const Icon(Icons.image_rounded, size: 18),
+                    label: const Text(
+                      'Chọn ảnh',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF0FDF4),
+                      foregroundColor: const Color(0xFF16A34A),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                     onPressed:
                         _hasBothQuestionMedia ||
                             _questionImageUrl != null ||
                             _questionImageFile != null
                         ? null
                         : () => _pickMedia(isQuestion: true, isVideo: true),
-                    icon: const Icon(Icons.video_file),
-                    label: const Text('Chọn video'),
+                    icon: const Icon(Icons.video_collection_rounded, size: 18),
+                    label: const Text(
+                      'Chọn video',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
               ],
@@ -774,10 +1055,12 @@ class _CreateOrUpdateQuestionScreenState
     return Stack(
       children: [
         Container(
-          padding: const EdgeInsets.all(12),
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(16),
+            color: Colors.white,
+            border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
           child: hasImage
               ? ClipRRect(
@@ -807,31 +1090,53 @@ class _CreateOrUpdateQuestionScreenState
                         )
                       : const SizedBox.shrink(),
                 )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Preview video',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(videoName, style: const TextStyle(fontSize: 14)),
-                  ],
+              : Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Preview video',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        videoName,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
         ),
         Positioned(
-          right: 0,
-          top: 0,
-          child: IconButton(
-            icon: const Icon(Icons.delete_forever, color: Colors.red),
-            onPressed: () {
-              setState(() {
-                _questionImageFile = null;
-                _questionVideoFile = null;
-                _questionImageUrl = null;
-                _questionVideoUrl = null;
-              });
-            },
+          right: 6,
+          top: 6,
+          child: CircleAvatar(
+            backgroundColor: Colors.red.shade50,
+            radius: 16,
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              icon: const Icon(
+                Icons.delete_forever_rounded,
+                color: Colors.red,
+                size: 18,
+              ),
+              onPressed: () {
+                setState(() {
+                  _questionImageFile = null;
+                  _questionVideoFile = null;
+                  _questionImageUrl = null;
+                  _questionVideoUrl = null;
+                });
+              },
+            ),
           ),
         ),
       ],
@@ -842,95 +1147,171 @@ class _CreateOrUpdateQuestionScreenState
     final isMediaMode = _isOptionMedia;
 
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      color: const Color(0xFFF8FAFC),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: Color(0xFFE2E8F0)),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Đáp án trắc nghiệm',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {
-                      setState(() {
-                        _isOptionMedia = false;
-                        _resetOptions();
-                      });
-                    },
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: !isMediaMode
-                          ? Colors.blue
-                          : Colors.white,
-                      foregroundColor: !isMediaMode
-                          ? Colors.white
-                          : Colors.black,
-                    ),
-                    child: const Text('Dạng chữ'),
+                Container(
+                  width: 4,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981),
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {
-                      setState(() {
-                        _isOptionMedia = true;
-                        _resetOptions();
-                      });
-                    },
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: isMediaMode ? Colors.blue : Colors.white,
-                      foregroundColor: isMediaMode
-                          ? Colors.white
-                          : Colors.black,
-                    ),
-                    child: const Text('Dạng ảnh'),
+                const SizedBox(width: 8),
+                const Text(
+                  'Đáp án trắc nghiệm',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F172A),
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE2E8F0),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => setState(() {
+                        _isOptionMedia = false;
+                        _resetOptions();
+                      }),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: !isMediaMode
+                              ? Colors.white
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: !isMediaMode
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 4,
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          'Dạng chữ',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: !isMediaMode
+                                ? const Color(0xFF2563EB)
+                                : const Color(0xFF64748B),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => setState(() {
+                        _isOptionMedia = true;
+                        _resetOptions();
+                      }),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isMediaMode
+                              ? Colors.white
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: isMediaMode
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 4,
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          'Dạng ảnh',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: isMediaMode
+                                ? const Color(0xFF2563EB)
+                                : const Color(0xFF64748B),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 12),
             const Text(
               'Chọn đáp án đúng bằng vòng tròn bên trái.',
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(
+                color: Color(0xFF64748B),
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             ...List.generate(4, (index) {
               final isCorrect = _correctOptionIndex == index;
-              return Card(
-                color: isCorrect ? Colors.green.shade50 : Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(
-                    color: isCorrect ? Colors.green : Colors.grey.shade300,
-                    width: isCorrect ? 2 : 1,
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: isCorrect ? const Color(0xFFF0FDF4) : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isCorrect
+                        ? const Color(0xFF10B981)
+                        : const Color(0xFFE2E8F0),
+                    width: isCorrect ? 2 : 1.5,
                   ),
                 ),
-                margin: const EdgeInsets.only(bottom: 12),
                 child: Padding(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 12,
+                  ),
                   child: Row(
                     children: [
                       Radio<int>(
                         value: index,
                         groupValue: _correctOptionIndex,
-                        activeColor: Colors.green,
+                        activeColor: const Color(0xFF10B981),
                         onChanged: (value) {
                           if (value == null) return;
                           setState(() => _correctOptionIndex = value);
                         },
                       ),
                       Text(
-                        '${_labels[index]}',
+                        _labels[index],
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: isCorrect ? Colors.green : Colors.black,
+                          color: isCorrect
+                              ? const Color(0xFF16A34A)
+                              : Colors.black,
+                          fontSize: 15,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -953,9 +1334,24 @@ class _CreateOrUpdateQuestionScreenState
   Widget _buildTextOptionField(int index) {
     return TextFormField(
       controller: _optionTextCtrls[index],
+      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
       decoration: InputDecoration(
         hintText: 'Nội dung đáp án ${_labels[index]}',
-        border: const OutlineInputBorder(),
+        hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5),
+        ),
       ),
     );
   }
@@ -971,10 +1367,14 @@ class _CreateOrUpdateQuestionScreenState
               borderRadius: BorderRadius.circular(12),
               child: Container(
                 height: 70,
-                color: Colors.grey.shade100,
-                child: imageUrl.startsWith('http') || imageUrl.startsWith('/uploads/')
+                color: const Color(0xFFF8FAFC),
+                child:
+                    imageUrl.startsWith('http') ||
+                        imageUrl.startsWith('/uploads/')
                     ? Image.network(
-                        imageUrl.startsWith('http') ? imageUrl : '${ApiClient.host}$imageUrl',
+                        imageUrl.startsWith('http')
+                            ? imageUrl
+                            : '${ApiClient.host}$imageUrl',
                         fit: BoxFit.cover,
                       )
                     : Image.file(File(imageUrl), fit: BoxFit.cover),
@@ -983,21 +1383,52 @@ class _CreateOrUpdateQuestionScreenState
           )
         else
           const Expanded(
-            child: Text('Chưa có ảnh', style: TextStyle(color: Colors.grey)),
+            child: Text(
+              'Chưa có ảnh',
+              style: TextStyle(
+                color: Color(0xFF94A3B8),
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         const SizedBox(width: 8),
         Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                side: const BorderSide(color: Color(0xFFCBD5E1)),
+              ),
               onPressed: () =>
                   _pickMedia(isQuestion: false, optionIndex: index),
-              icon: const Icon(Icons.upload_file, size: 18),
-              label: const Text('Tải ảnh'),
+              icon: const Icon(
+                Icons.upload_file,
+                size: 16,
+                color: Color(0xFF475569),
+              ),
+              label: const Text(
+                'Tải ảnh',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF475569),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
-            if (hasImage)
+            if (hasImage) ...[
+              const SizedBox(height: 2),
               IconButton(
-                icon: const Icon(Icons.delete, color: Colors.red),
+                constraints: const BoxConstraints(),
+                padding: EdgeInsets.zero,
+                icon: const Icon(Icons.delete, color: Colors.red, size: 18),
                 tooltip: 'Xóa ảnh đáp án',
                 onPressed: () {
                   setState(() {
@@ -1005,6 +1436,7 @@ class _CreateOrUpdateQuestionScreenState
                   });
                 },
               ),
+            ],
           ],
         ),
       ],
