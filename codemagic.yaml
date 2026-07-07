@@ -1,33 +1,35 @@
-scripts:
-  - name: Debug Environment
-    script: |
-      set -ex
+workflows:
+  ios-workflow:
+    name: iOS Flutter Build
 
-      echo "===== CURRENT DIRECTORY ====="
-      pwd
+    instance_type: mac_mini_m1
+    max_build_duration: 60
 
-      echo "===== FILES ====="
-      ls -R
+    working_directory: frontend/olympic_it_project
 
-      echo "===== WHO AM I ====="
-      whoami || true
+    environment:
+      flutter: stable
+      xcode: latest
 
-      echo "===== PATH ====="
-      echo $PATH
+    scripts:
+      - name: Check Environment
+        script: |
+          pwd
+          ls -la
+          flutter --version
 
-      echo "===== WHICH FLUTTER ====="
-      which flutter || true
+      - name: Check Flutter Project
+        script: |
+          if [ ! -f pubspec.yaml ]; then
+            echo "❌ pubspec.yaml not found!"
+            exit 1
+          fi
 
-      echo "===== FLUTTER VERSION ====="
-      flutter --version || true
+      - name: Get Packages
+        script: flutter pub get
 
-      echo "===== DART VERSION ====="
-      dart --version || true
+      - name: Build IPA
+        script: flutter build ipa --release --no-codesign
 
-      echo "===== FLUTTER DOCTOR ====="
-      flutter doctor -v || true
-
-  - name: Pub Get
-    script: |
-      set -ex
-      flutter pub get --verbose
+    artifacts:
+      - build/ios/ipa/*.ipa
