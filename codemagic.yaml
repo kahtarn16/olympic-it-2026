@@ -9,9 +9,6 @@ workflows:
       xcode: latest
       cocoapods: default
     scripts:
-      - name: Set up code signing settings on Flutter project
-        script: |
-          xcode-project use-profiles
       - name: Get Flutter packages
         script: |
           flutter pub get
@@ -20,4 +17,3 @@ workflows:
           flutter build ios --release --no-codesign
     artifacts:
       - build/ios/iphoneos/*.app
-      - build/ios/ipa/*.ipa
