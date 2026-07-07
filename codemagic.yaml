@@ -1,34 +1,33 @@
-workflows:
-  ios-workflow:
-    name: iOS Flutter Build
+scripts:
+  - name: Debug Environment
+    script: |
+      set -ex
 
-    max_build_duration: 60
-    instance_type: mac_mini_m1
+      echo "===== CURRENT DIRECTORY ====="
+      pwd
 
-    working_directory: olympic_it_project
+      echo "===== FILES ====="
+      ls -R
 
-    environment:
-      flutter: stable
-      xcode: latest
-      cocoapods: default
+      echo "===== WHO AM I ====="
+      whoami || true
 
-    scripts:
-      - name: Flutter version
-        script: flutter --version
+      echo "===== PATH ====="
+      echo $PATH
 
-      - name: Get Flutter packages
-        script: |
-          flutter pub get
+      echo "===== WHICH FLUTTER ====="
+      which flutter || true
 
-      - name: Install CocoaPods
-        script: |
-          cd ios
-          pod install
-          cd ..
+      echo "===== FLUTTER VERSION ====="
+      flutter --version || true
 
-      - name: Build iOS
-        script: |
-          flutter build ipa --release --no-codesign
+      echo "===== DART VERSION ====="
+      dart --version || true
 
-    artifacts:
-      - build/ios/ipa/*.ipa
+      echo "===== FLUTTER DOCTOR ====="
+      flutter doctor -v || true
+
+  - name: Pub Get
+    script: |
+      set -ex
+      flutter pub get --verbose
