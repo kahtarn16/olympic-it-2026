@@ -6,7 +6,7 @@ workflows:
     working_directory: olympic_it_project
     environment:
       flutter: 3.22.2 
-      xcode: 15.4
+      xcode: latest
       cocoapods: default
     scripts:
       - name: Get Flutter packages
