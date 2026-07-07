@@ -4,28 +4,27 @@ publish_to: 'none'
 version: 0.1.0+1
 
 environment:
-  sdk: '>=3.2.0 <4.0.0'
+  sdk: ^3.12.2
 
 dependencies:
-  flutter:
-    sdk: flutter
-  file_picker: ^6.1.1
-  image_picker: ^1.0.7
+  file_picker: ^12.0.0-beta.7  # Để chọn tệp chung
+  image_picker: ^1.0.7 # Để chuyên chọn ảnh/video
   video_player: ^2.8.2
   chewie: ^1.8.5
-  flutter_bloc: ^8.1.3
-  flutter_secure_storage: ^9.0.0
+  flutter:
+    sdk: flutter
+  flutter_bloc: ^9.1.1
+  flutter_secure_storage: ^10.3.1
   http: ^1.2.0
-  shared_preferences: ^2.2.2
+  shared_preferences: ^2.5.5
   flutter_windowmanager_v2: ^0.0.1
   root_checker_plus: any
   package_info_plus: any
   wakelock_plus: any
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
+  flutter_lints: ^6.0.0
 
 flutter:
   uses-material-design: true
