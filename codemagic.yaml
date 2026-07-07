@@ -5,15 +5,17 @@ workflows:
     instance_type: mac_mini_m1
     working_directory: olympic_it_project
     environment:
-      # 🔥 Ép hệ thống dùng phiên bản Flutter mới nhất (Master) để gánh được đống thư viện siêu mới của bạn
       flutter: master
       xcode: latest
       cocoapods: default
     scripts:
       - name: Get Flutter packages
         script: |
-          # Dùng lệnh này để tự động bỏ qua và sửa các lỗi khoảng trắng (nếu có) trên máy Mac
-          flutter pub get --no-example
+          # 🛠️ MẸO: Tự động tìm và thay thế tất cả khoảng trắng lỗi (NBSP) thành khoảng trắng chuẩn bằng lệnh sed
+          sed -i '' 's/ / /g' pubspec.yaml
+          
+          # Tiến hành lấy package như bình thường
+          flutter pub get
       - name: Build Flutter iOS
         script: |
           flutter build ios --release --no-codesign
