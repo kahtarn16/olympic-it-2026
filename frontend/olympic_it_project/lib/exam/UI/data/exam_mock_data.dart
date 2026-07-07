@@ -28,11 +28,11 @@ class ExamMockData {
   static const String questionText =
       'Bạn cần bấm tổ hợp phím tắt nào để bôi đen đoạn văn này?';
 
-  // TODO: Lấy từ API — đường dẫn ảnh minh hoạ (null nếu không có)
+  // TODO: Lấy từ API — đường dẫn ảnh minh hoạ (null nếu không có) 'https://picsum.photos/id/237/800/600'
   // Khi có server: đây sẽ là URL ảnh, không phải asset path
   static const String? imageAssetPath = null;
 
-  // TODO: Lấy từ API — URL video từ server (null nếu không có)
+  // TODO: Lấy từ API — URL video từ server (null nếu không có) 
   static const String? videoUrl = 'https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4';
 
   // ── ĐÁP ÁN TRẮC NGHIỆM ───────────────────────────────────────────────────
@@ -45,5 +45,5 @@ class ExamMockData {
     {'label': 'D', 'content': 'Tất cả đều sai'},
   ];
 
-  static const int loadingDurationSeconds = 5;
+  static const int loadingDurationSeconds = 15;
 }

@@ -89,7 +89,7 @@ class _QuestionImage extends StatelessWidget {
       onTap: () => _showImageDialog(context),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
-        child: Image.asset(
+        child: Image.network(
           assetPath,
           width: double.infinity,
           // Giữ nguyên tỉ lệ ảnh, không bị méo
@@ -129,7 +129,7 @@ class _QuestionImage extends StatelessWidget {
             panEnabled: true,
             minScale: 0.5,
             maxScale: 4.0,
-            child: Image.asset(
+            child: Image.network(
               assetPath,
               fit: BoxFit.contain,
             ),
@@ -164,53 +164,56 @@ class _QuestionVideoPlayerState extends State<_QuestionVideoPlayer> {
   }
 
   Future<void> _initializePlayer() async {
-  try {
-    _videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
-    await _videoPlayerController.initialize();
+    try {
+      _videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
+      await _videoPlayerController.initialize();
 
-    _chewieController = ChewieController(
-      videoPlayerController: _videoPlayerController,
-      aspectRatio: _videoPlayerController.value.aspectRatio,
-      autoPlay: false,
-      looping: false,
+      _chewieController = ChewieController(
+        videoPlayerController: _videoPlayerController,
+        aspectRatio: _videoPlayerController.value.aspectRatio,
+        autoPlay: false,
+        looping: false,
 
-      // ── CẤU HÌNH FIX LỖI XOAY MÀN HÌNH UX ─────────────────────────────────
-      // 1. Khi bấm phóng to: Cho phép xoay ngang để xem video cho sướng
-      deviceOrientationsAfterFullScreen: [
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-      ],
-      // 2. Khi THOÁT phóng to: ÉP màn hình quay trở lại chiều dọc cố định ngay lập tức
-      deviceOrientationsOnEnterFullScreen: [
-        DeviceOrientation.portraitUp,
-      ],
-      // ─────────────────────────────────────────────────────────────────────
+        // ── ĐÃ FIX CẤU HÌNH XOAY MÀN HÌNH CHUẨN UX ───────────────────────────
+        // 1. Khi VÀO phóng to: Ép hoặc cho phép xoay ngang màn hình
+        deviceOrientationsOnEnterFullScreen: [
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ],
+        
+        // 2. Khi THOÁT phóng to: Ép màn hình quay trở lại chiều dọc cố định
+        deviceOrientationsAfterFullScreen: [
+          DeviceOrientation.portraitUp,
+        ],
+        // ─────────────────────────────────────────────────────────────────────
 
-      errorBuilder: (context, errorMessage) {
-        return const Center(
-          child: Text(
-            'Lỗi tải video, vui lòng kiểm tra lại kết nối!',
-            style: TextStyle(color: Colors.white),
-          ),
-        );
-      },
-    );
-    setState(() {});
-  } catch (e) {
-    setState(() {
-      _hasError = true;
-    });
+        errorBuilder: (context, errorMessage) {
+          return const Center(
+            child: Text(
+              'Lỗi tải video, vui lòng kiểm tra lại kết nối!',
+              style: TextStyle(color: Colors.white),
+            ),
+          );
+        },
+      );
+      setState(() {});
+    } catch (e) {
+      setState(() {
+        _hasError = true;
+      });
+    }
   }
-}
 
   @override
   void dispose() {
-    // Luôn luôn giải phóng bộ nhớ của 2 controller khi thoát màn hình để tránh crash app
-    _videoPlayerController.dispose();
+    // Giải phóng Chewie trước rồi mới tới VideoPlayer để tránh lỗi bất đồng bộ
     _chewieController?.dispose();
+    _videoPlayerController.dispose();
+    
+    // Đảm bảo khi hủy Widget này, toàn bộ app quay về hướng dọc mặc định
     SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-  ]);
+      DeviceOrientation.portraitUp,
+    ]);
     super.dispose();
   }
 
@@ -226,7 +229,7 @@ class _QuestionVideoPlayerState extends State<_QuestionVideoPlayer> {
     }
 
     return Container(
-      height: 200, // Chiều cao hiển thị vùng video phù hợp trong đề bài
+      height: 200, 
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.black,
@@ -237,7 +240,7 @@ class _QuestionVideoPlayerState extends State<_QuestionVideoPlayer> {
           ? Chewie(controller: _chewieController!)
           : const Center(
               child: CircularProgressIndicator(
-                color: Colors.white, // Hiển thị xoay loading khi đang tải video
+                color: Colors.white, 
               ),
             ),
     );
