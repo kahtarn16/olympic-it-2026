@@ -1,31 +1,28 @@
 class ExamParticipantResponse {
   final int id;
-  final int examId;
   final int userId;
-  final String userFullName;
+  final String fullName;
+  final String className;
   final String status;
   final int score;
-  final String invitedAt;
 
   ExamParticipantResponse({
     required this.id,
-    required this.examId,
     required this.userId,
-    required this.userFullName,
+    required this.fullName,
+    required this.className,
     required this.status,
     required this.score,
-    required this.invitedAt,
   });
 
   factory ExamParticipantResponse.fromJson(Map<String, dynamic> json) {
-  return ExamParticipantResponse(
-    id: json['id'],
-    examId: json['examId'] ?? 0, 
-    userId: json['userId'] ?? 0,
-    userFullName: json['fullName'] ?? '',
-    status: json['status'] ?? '',
-    score: json['score'] ?? 0,
-    invitedAt: json['invitedAt'] ?? '',
-  );
-}
+    return ExamParticipantResponse(
+      id: json['id'],
+      userId: json['userId'],
+      fullName: json['fullName'] ?? '',
+      className: json['className'] ?? '',
+      status: json['status']?.toString() ?? '',
+      score: json['score'] ?? 0,
+    );
+  }
 }

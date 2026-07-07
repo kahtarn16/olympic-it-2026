@@ -6,23 +6,30 @@ import 'package:olympic_it_project/core/api_response.dart';
 import 'package:olympic_it_project/core/page_response.dart';
 import 'package:olympic_it_project/dto/admin_manager/exam/add_exam_question_request.dart';
 import 'package:olympic_it_project/dto/admin_manager/exam/add_participant_request.dart';
+import 'package:olympic_it_project/dto/admin_manager/exam/anti_cheat_response.dart';
 import 'package:olympic_it_project/dto/admin_manager/exam/create_exam_request.dart';
+import 'package:olympic_it_project/dto/admin_manager/exam/exam_details_response.dart';
 import 'package:olympic_it_project/dto/admin_manager/exam/exam_participant_response.dart';
 import 'package:olympic_it_project/dto/admin_manager/exam/exam_question_response.dart';
 import 'package:olympic_it_project/dto/admin_manager/exam/exam_response.dart';
+import 'package:olympic_it_project/dto/admin_manager/exam/exam_restore_response.dart';
 import 'package:olympic_it_project/dto/admin_manager/exam/remove_exam_question_request.dart';
 import 'package:olympic_it_project/dto/admin_manager/exam/update_exam_request.dart';
+import 'package:olympic_it_project/dto/profile/submit_answer_response.dart';
 
 class ExamService {
   final _api = ApiClient.instance;
 
-  Future<ExamResponse> getDetail(int id) async {
+  Future<ExamDetailsResponse> getDetail(int id) async {
     final response = await _api.get('admin/exam/$id');
+
     final jsonMap = safeDecode(response) as Map<String, dynamic>;
-    final apiResponse = ApiResponse<ExamResponse>.fromJson(
+
+    final apiResponse = ApiResponse<ExamDetailsResponse>.fromJson(
       jsonMap,
-      (data) => ExamResponse.fromJson(data as Map<String, dynamic>),
+      (data) => ExamDetailsResponse.fromJson(data as Map<String, dynamic>),
     );
+
     return apiResponse.data!;
   }
 
@@ -88,8 +95,66 @@ class ExamService {
     return apiResponse.data ?? [];
   }
 
+  Future<void> createRoom(int examId) async {
+    final response = await _api.post('exam-session/$examId/room', {});
+    _checkResponse(response);
+  }
+
   Future<void> startExam(int examId) async {
-    final response = await _api.put('admin/exam/$examId/start', {});
+    final response = await _api.post('exam-session/$examId/start', {});
+    _checkResponse(response);
+  }
+
+  Future<ExamRestoreResponse> restoreExamState(int examId) async {
+    final response = await _api.get('exam-session/$examId/restore');
+
+    final jsonMap = safeDecode(response);
+
+    return ExamRestoreResponse.fromJson(jsonMap);
+  }
+
+  Future<void> resetExam(int examId) async {
+    final response = await _api.post('exam-session/$examId/reset', {});
+
+    _checkResponse(response);
+  }
+
+  Future<void> nextQuestion(int examId) async {
+    final response = await _api.post('exam-session/$examId/next', {});
+
+    _checkResponse(response);
+  }
+
+  Future<SubmitAnswerResponse> submitAnswer(
+    int examId,
+    Map<String, dynamic> payload,
+  ) async {
+    final response = await _api.post('exam-session/$examId/submit', payload);
+    final jsonMap = safeDecode(
+      response,
+    ); 
+    return SubmitAnswerResponse.fromJson(jsonMap);
+  }
+
+  Future<List<AntiCheatResponse>> getAntiCheatLogs(int examId) async {
+    final response = await _api.get('exam/anti-cheat/$examId');
+    final jsonMap = safeDecode(response) as Map<String, dynamic>;
+
+    final apiResponse = ApiResponse<List<AntiCheatResponse>>.fromJson(
+      jsonMap,
+      (data) => (data as List)
+          .map((e) => AntiCheatResponse.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+    return apiResponse.data ?? [];
+  }
+
+  Future<void> recordViolation(int examId, String violationType) async {
+    final response = await _api.post('exam/anti-cheat', {
+      'examId': examId,
+      'type': violationType,
+    });
     _checkResponse(response);
   }
 

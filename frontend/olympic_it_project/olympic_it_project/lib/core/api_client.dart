@@ -1,17 +1,16 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart'; // 💡 BẮT BUỘC: Vá lỗi thiếu import MediaType
+import 'package:http_parser/http_parser.dart';
 import 'package:olympic_it_project/core/storage_token.dart';
 import 'package:olympic_it_project/service/auth_service.dart';
 
-/// Decode API response body safely, tránh FormatException khi server trả về body rỗng.
 dynamic safeDecode(http.Response response) {
   if (response.statusCode >= 200 && response.statusCode < 300) {
     final body = response.body.trim();
     return body.isNotEmpty ? jsonDecode(body) : null;
   }
-  throw Exception('Lỗi API: ${response.statusCode}');
+  throw Exception('Lỗi API: ${response.statusCode} - ${response.body}');
 }
 
 class ApiClient {
@@ -22,7 +21,9 @@ class ApiClient {
   final String _baseUrl = "$host/api/";
 
   Uri _buildUri(String endpoint) {
-    final normalizedEndpoint = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
+    final normalizedEndpoint = endpoint.startsWith('/')
+        ? endpoint.substring(1)
+        : endpoint;
     return Uri.parse(_baseUrl).resolve(normalizedEndpoint);
   }
 
@@ -39,6 +40,7 @@ class ApiClient {
 
   Future<Map<String, String>> _getHeaders() async {
     final token = await StorageToken.instance.getAccessToken();
+    print("ACCESS TOKEN = $token");
     return {
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
@@ -60,10 +62,23 @@ class ApiClient {
     Future<http.Response> Function() retry,
   ) async {
     var response = await request();
+
+    print("LẦN 1 = ${response.statusCode}");
+
     if (response.statusCode == 401 && _shouldRefresh(endpoint)) {
+      print("==== REFRESH ====");
+
       await AuthService().refreshTokens();
+
+      print(
+        "TOKEN SAU REFRESH = ${await StorageToken.instance.getAccessToken()}",
+      );
+
       response = await retry();
+
+      print("LẦN 2 = ${response.statusCode}");
     }
+
     return response;
   }
 
@@ -108,7 +123,10 @@ class ApiClient {
       .delete(_buildUri(endpoint), headers: await _getHeaders())
       .timeout(const Duration(seconds: 15));
 
-  Future<http.Response> deleteWithBodyRaw(String endpoint, dynamic body) async => await http
+  Future<http.Response> deleteWithBodyRaw(
+    String endpoint,
+    dynamic body,
+  ) async => await http
       .delete(
         _buildUri(endpoint),
         headers: await _getHeaders(),
@@ -151,10 +169,7 @@ class ApiClient {
     String filePath,
   ) async {
     final token = await StorageToken.instance.getAccessToken();
-    final request = http.MultipartRequest(
-      "POST",
-      _buildUri(endpoint),
-    );
+    final request = http.MultipartRequest("POST", _buildUri(endpoint));
 
     if (token != null) {
       request.headers["Authorization"] = "Bearer $token";

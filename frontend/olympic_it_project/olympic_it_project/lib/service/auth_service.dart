@@ -31,6 +31,10 @@ class AuthService {
         apiResponse.data!.userId,
         apiResponse.data!.roleName,
       );
+
+      print("SAVE TOKEN XONG");
+      print(await StorageToken.instance.getAccessToken());
+      print(await StorageToken.instance.getRefreshToken());
       return apiResponse.data!;
     } else {
       throw Exception(apiResponse.message);
@@ -38,28 +42,37 @@ class AuthService {
   }
 
   Future<void> refreshTokens() async {
-    final oldRefreshToken = await StorageToken.instance.getRefreshToken();
-    if (oldRefreshToken == null) throw Exception("Không có refresh token");
+  final oldRefreshToken = await StorageToken.instance.getRefreshToken();
+  print("OLD REFRESH = $oldRefreshToken");
 
-    final request = RefreshTokenRequest(refreshToken: oldRefreshToken);
-    final response = await _api.postRaw("auth/refresh", request.toJson());
-    final jsonMap = jsonDecode(response.body);
+  final request = RefreshTokenRequest(refreshToken: oldRefreshToken!);
 
-    final apiResponse = ApiResponse<LoginResponse>.fromJson(
-      jsonMap,
-      (data) => LoginResponse.fromJson(data),
+  final response = await _api.postRaw("auth/refresh", request.toJson());
+
+  print("REFRESH STATUS = ${response.statusCode}");
+  print("REFRESH BODY = ${response.body}");
+
+  final jsonMap = jsonDecode(response.body);
+
+  final apiResponse = ApiResponse<LoginResponse>.fromJson(
+    jsonMap,
+    (data) => LoginResponse.fromJson(data),
+  );
+
+  print("NEW ACCESS = ${apiResponse.data?.accessToken}");
+
+  if (apiResponse.code == 200) {
+    await StorageToken.instance.saveTokens(
+      apiResponse.data!.accessToken,
+      apiResponse.data!.refreshToken,
     );
 
-    if (apiResponse.code == 200 && apiResponse.data != null) {
-      await StorageToken.instance.saveTokens(
-        apiResponse.data!.accessToken,
-        apiResponse.data!.refreshToken,
-      );
-    } else {
-      await StorageToken.instance.deleteAll();
-      throw Exception(apiResponse.message ?? "Phiên làm việc đã hết hạn");
-    }
+    print("AFTER SAVE = ${await StorageToken.instance.getAccessToken()}");
+  } else {
+    print("DELETE TOKEN");
+    await StorageToken.instance.deleteAll();
   }
+}
 
   Future<void> forgotPassword(ForgotPasswordRequest request) async {
     final response = await _api.postRaw(
@@ -114,7 +127,9 @@ class AuthService {
         await StorageToken.instance.deleteAll();
         return;
       }
-      throw Exception('Server trả về body rỗng với status ${response.statusCode}');
+      throw Exception(
+        'Server trả về body rỗng với status ${response.statusCode}',
+      );
     }
 
     final jsonMap = jsonDecode(response.body);

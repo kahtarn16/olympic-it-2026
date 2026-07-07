@@ -14,161 +14,175 @@ class ExamScreen extends StatefulWidget {
 }
 
 class _ExamScreenState extends State<ExamScreen> {
-  final ExamService _examService = ExamService();
-  final _nameController = TextEditingController();
+  final _examService = ExamService();
 
-  bool _isLoading = true;
-  String? _errorMessage;
-  List<ExamResponse> _exams = [];
-
-  final ScrollController _scrollController = ScrollController();
-
-  int _page = 0;
-  final int _size = 10;
-
-  bool _hasMore = true;
-  bool _isLoadingMore = false;
-  int? _currentUserId;
-  bool _createShuffle = false;
-
-  Future<void> _loadMore() async {
-    if (_isLoadingMore || !_hasMore || _isLoading) return;
-
-    setState(() => _isLoadingMore = true);
-
-    try {
-      final nextPage = _page + 1;
-
-      final result = await _examService.getAllPaged(
-        page: nextPage,
-        size: _size,
-      );
-
-      setState(() {
-        _page = nextPage;
-        _exams.addAll(result.data);
-
-        _hasMore = result.data.length == _size;
-        _isLoadingMore = false;
-      });
-    } catch (e) {
-      setState(() => _isLoadingMore = false);
-    }
-  }
+  bool loading = false;
+  List<ExamResponse> exams = [];
 
   @override
   void initState() {
     super.initState();
-    _loadData();
-    _scrollController.addListener(() {
-      if (!_isLoadingMore &&
-          !_isLoading &&
-          _hasMore &&
-          _scrollController.position.extentAfter < 300) {
-        _loadMore();
-      }
-    });
+    _loadExams();
   }
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-      _page = 0;
-      _exams.clear();
-      _hasMore = true;
-      _isLoadingMore = false;
-    });
+  Future<void> _loadExams() async {
+    setState(() => loading = true);
 
     try {
-      final userId = await StorageToken.instance.getUserId();
-
-      final result = await _examService.getAllPaged(page: 0, size: _size);
-
-      if (!mounted) return;
+      final res = await _examService.getAllPaged(
+        page: 0,
+        size: 20,
+        keyword: "",
+      );
 
       setState(() {
-        _currentUserId = userId;
-        _exams = result.data;
-        _hasMore = result.data.length == _size;
-        _isLoading = false;
+        exams = res.data;
       });
     } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-        _isLoading = false;
-      });
+      debugPrint("Error: $e");
+    } finally {
+      setState(() => loading = false);
     }
   }
 
-  Future<void> _showExamDialog({ExamResponse? exam}) async {
-    final isEdit = exam != null;
-    final nameController = TextEditingController(text: exam?.name ?? '');
-    bool shuffle = exam?.shuffleOption ?? false;
+  void _confirmDelete(int examId) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Xóa đề thi"),
+          content: const Text("Bạn có chắc muốn xóa đề thi này không?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Hủy"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () async {
+                try {
+                  await _examService.delete(examId);
 
-    await showDialog<void>(
+                  if (!mounted) return;
+
+                  Navigator.pop(context);
+                  await _loadExams();
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Xóa thành công"),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                } catch (e) {
+                  if (!mounted) return;
+
+                  Navigator.pop(context);
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        e.toString().replaceFirst("Exception: ", ""),
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: const Text("Xóa"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showEditDialog(ExamResponse exam) {
+    final nameController = TextEditingController(text: exam.name);
+    bool shuffle = exam.shuffleOption;
+
+    showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
-              title: Text(isEdit ? 'Chỉnh sửa đề thi' : 'Tạo đề thi mới'),
+              title: const Text("Chỉnh sửa đề thi"),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
                     controller: nameController,
-                    decoration: const InputDecoration(labelText: 'Tên đề thi'),
+                    decoration: const InputDecoration(labelText: "Tên đề thi"),
                   ),
-                  const SizedBox(height: 12),
-                  CheckboxListTile(
-                    value: shuffle,
-                    title: const Text('Trộn câu hỏi'),
-                    onChanged: (value) {
-                      setStateDialog(() {
-                        shuffle = value ?? false;
-                      });
-                    },
+                  const SizedBox(height: 10),
+
+                  Row(
+                    children: [
+                      const Text("Trộn câu hỏi"),
+                      Switch(
+                        value: shuffle,
+                        onChanged: (value) {
+                          setStateDialog(() {
+                            shuffle = value;
+                          });
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Hủy'),
+                  child: const Text("Hủy"),
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    if (nameController.text.trim().isEmpty) return;
+                    if (nameController.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Vui lòng nhập tên đề thi"),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
 
-                    if (isEdit) {
+                    try {
                       await _examService.update(
-                        exam!.id,
+                        exam.id,
                         UpdateExamRequest(
                           name: nameController.text.trim(),
                           shuffleOption: shuffle,
                         ),
                       );
-                    } else {
-                      await _examService.create(
-                        CreateExamRequest(
-                          name: nameController.text.trim(),
-                          createdById: _currentUserId!,
-                          shuffleOption: shuffle,
+
+                      if (!mounted) return;
+
+                      Navigator.pop(context);
+                      await _loadExams();
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Cập nhật thành công"),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } catch (e) {
+                      if (!mounted) return;
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            e.toString().replaceFirst("Exception: ", ""),
+                          ),
+                          backgroundColor: Colors.red,
                         ),
                       );
                     }
-
-                    if (context.mounted) Navigator.pop(context);
-                    _loadData();
                   },
-                  child: const Text('Lưu'),
+                  child: const Text("Lưu"),
                 ),
               ],
             );
@@ -178,172 +192,180 @@ class _ExamScreenState extends State<ExamScreen> {
     );
   }
 
-  Future<void> _confirmDelete(int examId) async {
-    final confirm = await showDialog<bool>(
+  void _showCreateExamDialog() {
+    final nameController = TextEditingController();
+    bool shuffle = false;
+
+    showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Xóa đề thi'),
-          content: const Text('Bạn chắc chắn muốn xóa đề thi này không?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Hủy'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Xóa'),
-            ),
-          ],
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: const Text("Thêm đề thi"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: "Tên đề thi"),
+                  ),
+                  const SizedBox(height: 16),
+                  SwitchListTile(
+                    value: shuffle,
+                    title: const Text("Trộn câu hỏi"),
+                    onChanged: (value) {
+                      setStateDialog(() {
+                        shuffle = value;
+                      });
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Hủy"),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (nameController.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Vui lòng nhập tên đề thi"),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
+                    try {
+                      final userId = await StorageToken.instance.getUserId();
+
+                      if (userId == null) {
+                        throw Exception("Không tìm thấy thông tin người dùng.");
+                      }
+
+                      await _examService.create(
+                        CreateExamRequest(
+                          name: nameController.text.trim(),
+                          createdById: userId,
+                          shuffleOption: shuffle,
+                        ),
+                      );
+
+                      if (!mounted) return;
+
+                      Navigator.pop(context);
+                      await _loadExams();
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Tạo đề thi thành công"),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } catch (e) {
+                      if (!mounted) return;
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            e.toString().replaceFirst("Exception: ", ""),
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text("Tạo"),
+                ),
+              ],
+            );
+          },
         );
       },
     );
-
-    if (confirm != true) return;
-
-    try {
-      await _examService.delete(examId);
-      _loadData();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Xóa đề thi thành công')));
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Quản lý Đề thi'),
+        title: const Text("Quản lí đề thi"),
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
+          IconButton(
+            onPressed: _showCreateExamDialog,
+            icon: const Icon(Icons.add),
+          ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showExamDialog(),
-        child: const Icon(Icons.add),
-      ),
-      body: _buildBody(),
-    );
-  }
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _loadExams,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: exams.length,
+                itemBuilder: (context, index) {
+                  final e = exams[index];
 
-  Widget _buildBody() {
-    if (_isLoading && _exams.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
+                  return Card(
+                    child: ListTile(
+                      title: Text(e.name),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Trạng thái: ${e.status}"),
+                          Text("Được tạo bởi: ${e.createdBy}"),
+                          const SizedBox(height: 4),
 
-    if (_errorMessage != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Có lỗi xảy ra:\n$_errorMessage',
-                textAlign: TextAlign.center,
+                          Row(
+                            children: [
+                              const Text("Trộn câu hỏi: "),
+                              Text(
+                                e.shuffleOption ? "BẬT" : "TẮT",
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ExamDetailScreen(examId: e.id),
+                          ),
+                        );
+
+                        _loadExams();
+                      },
+
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            color: Colors.blue,
+                            onPressed: e.status == "WAITING"
+                                ? () => _showEditDialog(e)
+                                : null,
+                          ),
+
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            color: Colors.red,
+                            onPressed: e.status == "WAITING"
+                                ? () => _confirmDelete(e.id)
+                                : null,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _loadData,
-                child: const Text('Thử lại'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (_exams.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('Chưa có đề thi nào.'),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: () => _showExamDialog(),
-              child: const Text('Tạo đề thi mới'),
             ),
-          ],
-        ),
-      );
-    }
-
-    return Stack(
-      children: [
-        RefreshIndicator(
-          onRefresh: _loadData,
-          child: ListView.builder(
-            controller: _scrollController,
-            padding: const EdgeInsets.all(12),
-            itemCount: _exams.length + (_isLoadingMore ? 1 : 0),
-            itemBuilder: (context, index) {
-              if (index >= _exams.length) {
-                return const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
-
-              final exam = _exams[index];
-
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  title: Text(
-                    exam.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(
-                    'Trạng thái: ${exam.status}\n'
-                    'Người tạo: ${exam.createdBy}\n'
-                    'Ngày tạo: ${exam.createdAt}\n'
-                    'Trộn câu hỏi: ${exam.shuffleOption ? 'Có' : 'Không'}',
-                  ),
-                  isThreeLine: true,
-                  onTap: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ExamDetailScreen(examId: exam.id),
-                      ),
-                    );
-                    _loadData();
-                  },
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.blue),
-                        onPressed: () => _showExamDialog(exam: exam),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _confirmDelete(exam.id),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-
-        // 🔥 overlay loading khi refresh (không che list hoàn toàn)
-        if (_isLoading && _exams.isNotEmpty)
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: LinearProgressIndicator(),
-          ),
-      ],
     );
   }
 }

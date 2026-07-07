@@ -68,10 +68,10 @@ class _CreateOrUpdateQuestionScreenState
       _selectedType == QuestionType.MCQ_MEDIA;
 
   bool get _hasQuestionMedia =>
-      _questionImageFile != null ||
-      _questionVideoFile != null ||
-      (_questionImageUrl != null && _questionImageUrl!.isNotEmpty) ||
-      (_questionVideoUrl != null && _questionVideoUrl!.isNotEmpty);
+    _questionImageFile != null ||
+    (_questionImageUrl != null && _questionImageUrl!.trim().isNotEmpty) ||
+    _questionVideoFile != null ||
+    (_questionVideoUrl != null && _questionVideoUrl!.trim().isNotEmpty);
 
   bool get _hasBothQuestionMedia =>
       (_questionImageFile != null ||
@@ -201,8 +201,6 @@ class _CreateOrUpdateQuestionScreenState
       setState(() {
         _isUploadingMedia = true;
       });
-
-      await Future.delayed(const Duration(seconds: 1));
 
       if (!mounted) return;
       setState(() {
@@ -790,20 +788,16 @@ class _CreateOrUpdateQuestionScreenState
                           fit: BoxFit.cover,
                         )
                       : (_questionImageUrl != null &&
-                            Uri.tryParse(_questionImageUrl!)?.hasScheme == true)
-                      ? Image.network(
-                          _questionImageUrl!,
-                          height: 170,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        )
-                      : (_questionImageUrl != null &&
                             _questionImageUrl!.isNotEmpty)
-                      ? Image.file(
-                          File(_questionImageUrl!),
+                      ? Image.network(
+                          _questionImageUrl!.startsWith('http')
+                              ? _questionImageUrl!
+                              : '${ApiClient.host}${_questionImageUrl!}',
                           height: 170,
                           width: double.infinity,
                           fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                              const Icon(Icons.broken_image),
                         )
                       : const SizedBox.shrink(),
                 )
@@ -972,9 +966,13 @@ class _CreateOrUpdateQuestionScreenState
               child: Container(
                 height: 70,
                 color: Colors.grey.shade100,
-                child: imageUrl.startsWith('http') || imageUrl.startsWith('/uploads/')
+                child:
+                    imageUrl.startsWith('http') ||
+                        imageUrl.startsWith('/uploads/')
                     ? Image.network(
-                        imageUrl.startsWith('http') ? imageUrl : '${ApiClient.host}$imageUrl',
+                        imageUrl.startsWith('http')
+                            ? imageUrl
+                            : '${ApiClient.host}$imageUrl',
                         fit: BoxFit.cover,
                       )
                     : Image.file(File(imageUrl), fit: BoxFit.cover),
