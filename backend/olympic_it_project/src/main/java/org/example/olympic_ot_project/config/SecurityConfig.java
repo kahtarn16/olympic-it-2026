@@ -43,13 +43,14 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/admin/**")
                         .hasRole("ADMIN")
-                        .requestMatchers("/api/upload/**").permitAll()
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html"
                         ).permitAll()
-
+                        .requestMatchers("/ws/**", "/ws").permitAll()
+                        .requestMatchers("/topic/**").permitAll()
+                        .requestMatchers("/uploads/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)

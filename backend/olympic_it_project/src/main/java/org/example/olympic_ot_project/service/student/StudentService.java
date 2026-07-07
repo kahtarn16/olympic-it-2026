@@ -3,15 +3,15 @@ package org.example.olympic_ot_project.service.student;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.example.olympic_ot_project.core.AccountStudentStatus;
-import org.example.olympic_ot_project.dto.student.CreateStudentRequest;
-import org.example.olympic_ot_project.dto.student.StudentResponse;
-import org.example.olympic_ot_project.dto.student.UpdateStudentRequest;
+import org.example.olympic_ot_project.dto.student.*;
 import org.example.olympic_ot_project.enity.Classes;
+import org.example.olympic_ot_project.enity.ExamParticipant;
 import org.example.olympic_ot_project.enity.Role;
 import org.example.olympic_ot_project.enity.Users;
 import org.example.olympic_ot_project.exception.AppException;
 import org.example.olympic_ot_project.exception.ErrorCode;
 import org.example.olympic_ot_project.repositoy.ClassesRepository;
+import org.example.olympic_ot_project.repositoy.ExamParticipantRepository;
 import org.example.olympic_ot_project.repositoy.RoleRepository;
 import org.example.olympic_ot_project.repositoy.UsersRepository;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -122,4 +122,6 @@ public class StudentService {
 
         usersRepository.save(user);
     }
+
+
 }

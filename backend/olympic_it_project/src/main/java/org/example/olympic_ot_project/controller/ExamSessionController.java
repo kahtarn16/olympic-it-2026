@@ -1,4 +1,63 @@
 package org.example.olympic_ot_project.controller;
 
+import lombok.RequiredArgsConstructor;
+import org.example.olympic_ot_project.dto.exam.ExamRestoreResponse;
+import org.example.olympic_ot_project.dto.exam.ExamSessionResponse;
+import org.example.olympic_ot_project.dto.exam.Leaderboard;
+import org.example.olympic_ot_project.dto.exam.SubmitAnswerResponse;
+import org.example.olympic_ot_project.dto.exam.websocket.SubmitAnswerPayload;
+import org.example.olympic_ot_project.service.exam.ExamService;
+import org.example.olympic_ot_project.service.exam.ExamSessionService;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/exam-session")
+@RequiredArgsConstructor
 public class ExamSessionController {
+    private final ExamSessionService examSessionService;
+
+    @PostMapping("/{examId}/room")
+    public void createRoom(@PathVariable Integer examId) {
+        examSessionService.createRoom(examId);
+    }
+
+    @PostMapping("/{examId}/start")
+    public void startExam(@PathVariable Integer examId) {
+        examSessionService.startExam(examId);
+    }
+
+    @PostMapping("/{examId}/next")
+    public void nextQuestion(@PathVariable Integer examId) {
+        examSessionService.adminNextQuestion(examId);
+    }
+
+    @PostMapping("/{examId}/submit")
+    public SubmitAnswerResponse submitAnswer(
+            @PathVariable Integer examId,
+            @RequestBody SubmitAnswerPayload payload
+    ) {
+        return examSessionService.submitAnswer(examId, payload);
+    }
+
+    @GetMapping("/{examId}")
+    public ExamSessionResponse getSession(@PathVariable Integer examId) {
+        return examSessionService.getSessionInfo(examId);
+    }
+
+    @GetMapping("/{examId}/leaderboard")
+    public List<Leaderboard> leaderboard(@PathVariable Integer examId) {
+        return examSessionService.getLeaderboard(examId);
+    }
+
+    @GetMapping("/{examId}/restore")
+    public ExamRestoreResponse restore(@PathVariable Integer examId) {
+        return examSessionService.restoreExam(examId);
+    }
+
+    @PostMapping("/{examId}/reset")
+    public void reset(@PathVariable Integer examId) {
+        examSessionService.resetExam(examId);
+    }
 }

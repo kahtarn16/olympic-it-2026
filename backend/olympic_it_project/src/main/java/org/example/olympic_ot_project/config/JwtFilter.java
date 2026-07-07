@@ -13,6 +13,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -36,6 +37,13 @@ public class JwtFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain)
             throws ServletException, IOException {
+        String path = request.getRequestURI();
+
+
+        if (path.startsWith("/ws")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         String authHeader = request.getHeader("Authorization");
 
@@ -76,11 +84,14 @@ public class JwtFilter extends OncePerRequestFilter {
             if (username != null &&
                     SecurityContextHolder.getContext().getAuthentication() == null) {
 
+                UserDetails userDetails =
+                        userDetailsService.loadUserByUsername(username);
+
                 UsernamePasswordAuthenticationToken auth =
                         new UsernamePasswordAuthenticationToken(
-                                username,
+                                userDetails,
                                 null,
-                                authorities
+                                userDetails.getAuthorities()
                         );
 
                 SecurityContextHolder.getContext().setAuthentication(auth);

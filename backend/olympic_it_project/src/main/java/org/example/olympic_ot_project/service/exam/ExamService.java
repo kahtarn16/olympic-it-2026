@@ -51,6 +51,10 @@ public class ExamService {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
 
+        if (exam.getStatus() != ExamStatus.WAITING) {
+            throw new AppException(ErrorCode.EXAM_CANNOT_BE_UPDATED);
+        }
+
         exam.setName(request.getName());
         exam.setShuffleOption(request.isShuffleOption());
 
@@ -74,6 +78,14 @@ public class ExamService {
         Question question = questionRepository.findById(request.getQuestionId())
                 .orElseThrow(() -> new AppException(ErrorCode.QUESTION_NOT_FOUND));
 
+        boolean exists = examQuestionRepository
+                .findByExamIdAndQuestionId(request.getExamId(), request.getQuestionId())
+                .isPresent();
+
+        if (exists) {
+            throw new AppException(ErrorCode.QUESTION_ALREADY_EXISTS);
+        }
+
         ExamQuestion eq = new ExamQuestion();
         eq.setExam(exam);
         eq.setQuestion(question);
@@ -89,16 +101,6 @@ public class ExamService {
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
 
         examQuestionRepository.delete(eq);
-    }
-
-    public void startExam(Integer examId) {
-
-        Exam exam = examRepository.findById(examId)
-                .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
-
-        exam.setStatus(ExamStatus.RUNNING);
-
-        examRepository.save(exam);
     }
 
     public DetailsExamResponse getExamDetail(Integer examId) {

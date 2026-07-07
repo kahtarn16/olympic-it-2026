@@ -66,6 +66,7 @@ public class AuthController {
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<LoginResponse>> refreshToken(
             @Valid @RequestBody RefreshTokenRequest request) {
+        System.out.println("====== REFRESH CONTROLLER ======");
 
         LoginResponse response = authService.refreshToken(request.getRefreshToken());
 

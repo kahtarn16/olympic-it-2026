@@ -28,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.Optional;
 import java.util.Random;
 
 @Service
@@ -168,9 +169,21 @@ public class AuthService {
     }
 
     public LoginResponse refreshToken(String refreshTokenValue) {
+        System.out.println("INPUT TOKEN=[" + refreshTokenValue + "]");
 
         RefreshToken rfToken = refreshTokenRepository.findByRefreshToken(refreshTokenValue)
                 .orElseThrow(() -> new AppException(ErrorCode.INVALID_TOKEN));
+
+
+        Optional<RefreshToken> optional =
+                refreshTokenRepository.findByRefreshToken(refreshTokenValue);
+
+        System.out.println("FOUND = " + optional.isPresent());
+
+        RefreshToken s = optional
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_TOKEN));
+
+        System.out.println("TOKEN ID = " + s.getId());
 
         Users user = rfToken.getUser();
 

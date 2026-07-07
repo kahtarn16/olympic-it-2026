@@ -9,4 +9,5 @@ import java.util.Optional;
 public interface ExamQuestionRepository extends JpaRepository<ExamQuestion, Integer> {
  Optional<ExamQuestion> findByExamIdAndQuestionId(Integer examId, Integer questionId);
  List<ExamQuestion> findByExamIdOrderByOrderIndexAsc(Integer examId);
+ Integer countByExamId(Integer examId);
 }

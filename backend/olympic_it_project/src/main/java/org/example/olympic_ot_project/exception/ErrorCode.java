@@ -54,7 +54,33 @@ public enum ErrorCode {
     MCQ_OPTION_TYPE_INCONSISTENT(1044, "MCQ_OPTION_TYPE_INCONSISTENT"),
     MCQ_OPTION_EMPTY(1045, "Không được phép bỏ trống câu trả lời"),
     MCQ_OPTION_IMAGE_REQUIRED(1046, "Yêu cầu hình ảnh cho tùy chọn câu hỏi trắc nghiệm"),
-    MCQ_OPTION_TEXT_REQUIRED(1047, "Bắt buộc nhập nội dung cho tùy chọn câu hỏi trắc nghiệm.");
+    MCQ_OPTION_TEXT_REQUIRED(1047, "Bắt buộc nhập nội dung cho tùy chọn câu hỏi trắc nghiệm."),
+    SESSION_NOT_FOUND(1048, "Không tìm thấy phiên thi"),
+    PARTICIPANT_NOT_FOUND(1049, "Không tìm thấy thí sinh"),
+    INVALID_QUESTION_INDEX(1050, "Chỉ số câu hỏi không hợp lệ"),
+    INVALID_QUESTION_STATE(1051, "Câu hỏi hiện không thể trả lời"),
+    QUESTION_TIME_EXPIRED(1052, "Đã hết thời gian trả lời"),
+    QUESTION_ALREADY_ANSWERED(1053, "Câu hỏi đã được trả lời"),
+    INVALID_OPTION(1054, "Đáp án không thuộc câu hỏi hiện tại"),
+    EXAM_ALREADY_FINISHED(1055, "Cuộc thi đã kết thúc"),
+    EXAM_SESSION_LOCKED(1056, "Phiên thi đang bị khóa"),
+    INVALID_EXAM_STATE(1057, "Trạng thái cuộc thi không hợp lệ"),
+    INVALID_STATE(1058, "Trạng thái không hợp lê"),
+    ROOM_NOT_READY(1059, "Phòng thi chưa mở"),
+    NOT_AUTHENTICATED(1060, "Vai trò không đúng"),
+    JUST_ROLE_USER(1061, "Chỉ có thí sinh mới được phép tham gia"),
+    EXAM_CANNOT_BE_UPDATED(1062, "Đề thi đang chạy, không thể chỉnh sửa"),
+    QUESTION_ALREADY_EXISTS(1063, "Câu hỏi đã được thêm vào đề"),
+    PARTICIPANT_NOT_JOINED(1064, "Bạn không được phép trả lời câu hỏi"),
+    TIME_OUT(1065, "Hết thời gian trả lời"),
+    ANSWER_EMPTY(1066, "Không được phép bỏ trông câu trả lời"),
+    OPTION_REQUIRED(1067, "Vui lòng chọn câu trả lời"),
+    INVALID_ANTI_CHEAT_TYPE(1068, "Loại anti cheat không hợp lệ"),
+    EXAM_NOT_RUNNING(1069, "Phòng thi không hoạt động"),
+    UNAUTHENTICATED(1070,"Chưa được xác thực"),
+    DUPLICATE_ANTI_CHEAT_EVENT(1071, "Log bị trùng lặp"),
+    EXAM_NOT_FINISHED(1072, "Bài thi chưa hoàn thành, không thể xem kết quả");
+
 
     private final int code;
     private final String message;

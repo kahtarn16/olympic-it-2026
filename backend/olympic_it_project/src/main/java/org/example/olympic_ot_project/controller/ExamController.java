@@ -65,12 +65,6 @@ public class ExamController {
         return ResponseEntity.ok(ApiResponse.success("Xóa câu hỏi khỏi đề thành công"));
     }
 
-    @PutMapping("/{examId}/start")
-    public ResponseEntity<ApiResponse<String>> startExam(@PathVariable Integer examId) {
-        examService.startExam(examId);
-        return ResponseEntity.ok(ApiResponse.success("Bắt đầu cuộc thi"));
-    }
-
     @GetMapping("/{examId}")
     public ResponseEntity<ApiResponse<DetailsExamResponse>> getDetail(@PathVariable Integer examId) {
         return ResponseEntity.ok(ApiResponse.success(examService.getExamDetail(examId)));
@@ -119,4 +113,6 @@ public class ExamController {
                 ApiResponse.success(examService.getAllExams(page, size, keyword))
         );
     }
+
+
 }
