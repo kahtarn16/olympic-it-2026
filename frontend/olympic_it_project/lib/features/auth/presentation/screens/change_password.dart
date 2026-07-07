@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:olympic_it_project/features/home/pressentation/profile_screen.dart';
 
-class ResetPasswordScreen extends StatefulWidget {
-  const ResetPasswordScreen({super.key});
+class ChangePasswordScreen extends StatefulWidget {
+  const ChangePasswordScreen({super.key});
 
   @override
-  State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
+  State<ChangePasswordScreen> createState() => _ChangePasswordScreenState();
 }
 
-class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
+class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
@@ -159,7 +160,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         String pass = _passwordController.text;
                         String confirmPass = _confirmPasswordController.text;
 
-                        // 1. Kiểm tra bỏ trống
                         if (pass.isEmpty || confirmPass.isEmpty) {
                           _showErrorSnackBar(
                             "Vui lòng nhập đầy đủ 2 ô mật khẩu!",
@@ -167,7 +167,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           return;
                         }
 
-                        // 2. Kiểm tra độ dài mật khẩu
                         if (pass.length < 6) {
                           _showErrorSnackBar(
                             "Mật khẩu phải có ít nhất 6 ký tự!",
@@ -175,7 +174,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           return;
                         }
 
-                        // 3. Kiểm tra trùng khớp
                         if (pass != confirmPass) {
                           _showErrorSnackBar(
                             "Mật khẩu xác nhận không trùng khớp!",
@@ -183,10 +181,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           return;
                         }
 
-                        // Thành công
                         print("Đổi mật khẩu thành công với: $pass");
 
-                        Navigator.pop(context);
+                        // QUAN TRỌNG: pop bằng root navigator
+                        Navigator.of(context, rootNavigator: true).pop(true);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF3B82F6),

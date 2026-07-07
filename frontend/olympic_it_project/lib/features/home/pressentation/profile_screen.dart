@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:olympic_it_project/features/auth/presentation/screens/reset_password.dart';
 import 'package:olympic_it_project/features/home/pressentation/profile_screen.dart';
+
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
@@ -37,7 +39,12 @@ class ProfileScreen extends StatelessWidget {
               _buildButton(
                 text: "Đổi mật khẩu",
                 onPressed: () {
-                  // TODO
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ResetPasswordScreen(),
+                    ),
+                  );
                 },
               ),
 
@@ -66,19 +73,14 @@ class ProfileScreen extends StatelessWidget {
           child: Container(
             width: 40,
             height: 40,
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.blue),
-            ),
+            decoration: BoxDecoration(border: Border.all(color: Colors.blue)),
             child: const Icon(Icons.arrow_back_ios_new),
           ),
         ),
         const SizedBox(width: 12),
         const Text(
           "Thông tin cá nhân",
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
       ],
     );
@@ -88,11 +90,7 @@ class ProfileScreen extends StatelessWidget {
     return const CircleAvatar(
       radius: 45,
       backgroundColor: Colors.orange,
-      child: Icon(
-        Icons.person,
-        size: 55,
-        color: Colors.white,
-      ),
+      child: Icon(Icons.person, size: 55, color: Colors.white),
     );
   }
 
@@ -109,10 +107,7 @@ class ProfileScreen extends StatelessWidget {
         children: [
           const Text(
             "Thông tin thí sinh",
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 18),
           _buildRow("Họ tên", "Lâm Quốc Phong"),
@@ -131,12 +126,7 @@ class ProfileScreen extends StatelessWidget {
         children: [
           SizedBox(
             width: 70,
-            child: Text(
-              "$title:",
-              style: const TextStyle(
-                fontSize: 15,
-              ),
-            ),
+            child: Text("$title:", style: const TextStyle(fontSize: 15)),
           ),
           Expanded(
             child: Text(
@@ -176,17 +166,11 @@ class ProfileScreen extends StatelessWidget {
           children: [
             Text(
               text,
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 18,
-              ),
+              style: const TextStyle(color: Colors.black, fontSize: 18),
             ),
             if (icon != null) ...[
               const SizedBox(width: 10),
-              Icon(
-                icon,
-                color: iconColor,
-              ),
+              Icon(icon, color: iconColor),
             ],
           ],
         ),
