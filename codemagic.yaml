@@ -5,7 +5,7 @@ workflows:
     instance_type: mac_mini_m1
     working_directory: olympic_it_project
     environment:
-      flutter: 3.22.2 
+      flutter: stable
       xcode: latest
       cocoapods: default
     scripts:
