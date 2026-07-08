@@ -1,0 +1,21 @@
+# Uncomment this line to define a global platform for your project
+platform :ios, '16.0'
+
+# CocoaPods analytics are used to measure features used and provide guides
+# For more information, see https://github.com/CocoaPods/CocoaPods/issues/4386
+plugin 'cocoapods-art', :sources => [
+  'cocoapods'
+]
+
+target 'Runner' do
+  use_frameworks!
+  use_modular_headers!
+
+  flutter_install_all_ios_pods File.dirname(File.realpath(__file__))
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+  end
+end

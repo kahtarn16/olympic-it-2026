@@ -14,178 +14,154 @@ class ExamRoomScreen extends StatefulWidget {
   State<ExamRoomScreen> createState() => _ExamRoomScreenState();
 }
 
-class _ExamRoomScreenState extends State<ExamRoomScreen>
-    with WidgetsBindingObserver {
+class _ExamRoomScreenState extends State<ExamRoomScreen> with WidgetsBindingObserver {
   final _stomp = ExamStompService();
   final _examService = ExamService();
-  Timer? timer;
+
   String state = "WAITING";
+  String statusText = "Đang kết nối...";
   int currentIndex = 0;
   int total = 0;
   int remainingSeconds = 0;
-  QuestionDetailDto? question;
+  QuestionDetailDto? currentQuestion;
   int? correctOptionId;
-  int currentScore = 0;
-  int? selectedOptionId;
-  bool submitted = false;
   String? sampleAnswer;
-  final TextEditingController essayController = TextEditingController();
+  int currentScore = 0; // Tổng điểm nếu cần
+  String? errorMessage;
+
+  Timer? timer;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _initExam();
+    _initAdminRoom();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     timer?.cancel();
-    essayController.dispose();
     _stomp.disconnect();
     super.dispose();
   }
 
-  Future<void> _initExam() async {
+  Future<void> _initAdminRoom() async {
+    setState(() => statusText = "Đang kết nối phòng thi...");
+
     try {
-      await _connect();
+      await _stomp.connect(
+        examId: widget.examId,
+        onMessage: (msg) {
+          if (!mounted) return;
+          _handleAdminMessage(msg);
+        },
+      );
     } catch (e) {
-      debugPrint(e.toString());
+      setState(() {
+        state = "ERROR";
+        errorMessage = "WebSocket: $e";
+      });
     }
+
     await _restoreSession();
+  }
+
+  void _handleAdminMessage(dynamic msg) {
+    try {
+      final data = msg as Map<String, dynamic>;
+      final type = data["type"];
+
+      switch (type) {
+        case "ROOM_READY":
+          setState(() => state = "ROOM_READY");
+          break;
+
+        case "PREVIEW":
+          final d = data["data"];
+          setState(() {
+            state = "PREVIEW";
+            currentIndex = d["index"];
+            total = d["totalQuestions"];
+            remainingSeconds = d["duration"];
+          });
+          _startTimer();
+          break;
+
+        case "SHOW_QUESTION":
+          QuestionDetailDto? q;
+          if (data["questionData"] != null) {
+            q = QuestionDetailDto.fromJson(data["questionData"]);
+          }
+          setState(() {
+            state = "SHOW_QUESTION";
+            currentIndex = data["currentQuestionIndex"] ?? 0;
+            total = data["totalQuestions"] ?? 0;
+            remainingSeconds = data["duration"] ?? 0;
+            currentQuestion = q;
+          });
+          _startTimer();
+          break;
+
+        case "SHOW_ANSWER":
+          timer?.cancel();
+          setState(() {
+            state = "SHOW_ANSWER";
+            correctOptionId = data["correctOptionId"];
+            sampleAnswer = data["sampleAnswer"];
+          });
+          break;
+
+        case "FINISH":
+          timer?.cancel();
+          setState(() => state = "FINISH");
+          break;
+      }
+    } catch (e) {
+      debugPrint("Admin message error: $e");
+    }
   }
 
   Future<void> _restoreSession() async {
     try {
       final res = await _examService.restoreExamState(widget.examId);
-
       setState(() {
         state = res.state;
         currentIndex = res.currentQuestionIndex ?? 0;
         total = res.totalQuestions;
         remainingSeconds = res.remainingSeconds.toInt();
-        question = res.currentQuestion;
-        correctOptionId = null;
-        selectedOptionId = null;
-        submitted = false;
-        essayController.clear();
+        currentQuestion = res.currentQuestion;
       });
 
       if (state == "PREVIEW" || state == "SHOW_QUESTION") {
         _startTimer();
       }
     } catch (e) {
-      debugPrint("Restore lỗi: $e");
+      setState(() {
+        state = "ERROR";
+        errorMessage = e.toString();
+      });
     }
-  }
-
-  Future<void> _connect() async {
-    await _stomp.connect(
-      examId: widget.examId,
-      onMessage: (msg) {
-        if (!mounted) return;
-
-        try {
-          final data = msg as Map<String, dynamic>;
-          final type = data["type"];
-
-          switch (type) {
-            case "ROOM_READY":
-              timer?.cancel();
-              setState(() {
-                state = "ROOM_READY";
-                currentIndex = 0;
-                total = 0;
-                remainingSeconds = 0;
-                question = null;
-                correctOptionId = null;
-                selectedOptionId = null;
-                submitted = false;
-                currentScore = 0;
-                essayController.clear();
-              });
-              break;
-
-            case "PREVIEW":
-              final data = msg["data"];
-
-              setState(() {
-                state = "PREVIEW";
-                currentIndex = data["index"];
-                total = data["totalQuestions"];
-                remainingSeconds = data["duration"];
-                question = null;
-                correctOptionId = null;
-                selectedOptionId = null;
-                submitted = false;
-                essayController.clear();
-              });
-              _startTimer();
-              break;
-
-            case "SHOW_QUESTION":
-              QuestionDetailDto? parsedQuestion;
-
-              if (data["questionData"] != null) {
-                parsedQuestion = QuestionDetailDto.fromJson(
-                  data["questionData"],
-                );
-              }
-
-              setState(() {
-                state = "SHOW_QUESTION";
-                currentIndex = data["currentQuestionIndex"] ?? 0;
-                total = data["totalQuestions"] ?? 0;
-                remainingSeconds = data["duration"] ?? 0;
-                question = parsedQuestion;
-                correctOptionId = null;
-                selectedOptionId = null;
-                submitted = false;
-                essayController.clear();
-              });
-              _startTimer();
-              break;
-
-            case "SHOW_ANSWER":
-              timer?.cancel();
-
-              setState(() {
-                state = "SHOW_ANSWER";
-                correctOptionId = data["correctOptionId"];
-                sampleAnswer = data["sampleAnswer"];
-              });
-              break;
-
-            case "FINISH":
-              timer?.cancel();
-              setState(() {
-                state = "FINISH";
-              });
-              break;
-          }
-        } catch (e) {
-          debugPrint("Lỗi xử lý websocket: $e");
-        }
-      },
-    );
   }
 
   void _startTimer() {
     timer?.cancel();
     timer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (remainingSeconds <= 0) {
-        t.cancel();
-        return;
+      if (remainingSeconds > 0 && mounted) {
+        setState(() => remainingSeconds--);
       }
-      setState(() {
-        remainingSeconds--;
-      });
     });
+  }
+
+  String _formatTime(int seconds) {
+    final m = seconds ~/ 60;
+    final s = seconds % 60;
+    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold();
+    return Scaffold(
+    );
   }
 }
