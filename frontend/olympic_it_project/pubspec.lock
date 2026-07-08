@@ -616,6 +616,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.0"
+  screenshot_recording_detector:
+    dependency: "direct main"
+    description:
+      name: screenshot_recording_detector
+      sha256: "08eba1437bbfff3c64104315e47d35223bdea3b746063419f713a3400e3f0ccc"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.9.0"
   shared_preferences:
     dependency: "direct main"
     description:

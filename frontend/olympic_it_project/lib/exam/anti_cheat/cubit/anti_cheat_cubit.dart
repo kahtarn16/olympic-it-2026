@@ -5,15 +5,17 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_windowmanager_v2/flutter_windowmanager_v2.dart';
 import 'package:root_checker_plus/root_checker_plus.dart';
-
-// ════════════════════════════════════════════════════════════════════════════
+import 'package:screenshot_recording_detector/screenshot_recording_detector.dart';
+import 'package:screenshot_recording_detector/models/detection_event.dart';
+// ═══════════════════════════════════════════════════════════════════════════
 // LOẠI VI PHẠM
 // ════════════════════════════════════════════════════════════════════════════
 
 enum ViolationType {
-  exitApp,     // Thoát app / chuyển app khác
-  screenshot,  // Cố chụp / quay màn hình
-  splitScreen, // Chia đôi màn hình
+  exitApp,
+  screenshot,
+  screenRecording,
+  splitScreen,
 }
 
 // Chuyển enum thành chuỗi hiển thị cho người dùng
@@ -24,6 +26,8 @@ extension ViolationTypeLabel on ViolationType {
         return 'Cửa sổ đã mất focus';
       case ViolationType.screenshot:
         return 'Phát hiện chụp màn hình';
+      case ViolationType.screenRecording:
+        return 'Phát hiện quay màn hình';
       case ViolationType.splitScreen:
         return 'Phát hiện chia đôi màn hình';
     }
@@ -110,9 +114,11 @@ class AntiCheatSubmitted extends AntiCheatState {}
 // ════════════════════════════════════════════════════════════════════════════
 
 class AntiCheatCubit extends Cubit<AntiCheatState>
-    with WidgetsBindingObserver {
+  with WidgetsBindingObserver {
+      
   // Tổng số lần vi phạm trong phiên thi
   int _violationCount = 0;
+  StreamSubscription? _screenSubscription;
 
   // Giới hạn vi phạm — quá số này tự động khoá bài
   static const int _maxViolations = 3;
@@ -132,29 +138,27 @@ class AntiCheatCubit extends Cubit<AntiCheatState>
   // ── BẮT ĐẦU GIÁM SÁT ──────────────────────────────────────────────────
 
   Future<void> startGuarding() async {
+    
     // Bước 1: Kiểm tra root/jailbreak theo từng platform
     try {
-      if (Platform.isAndroid) {
-        // isRootChecker() — đúng tên method của root_checker_plus trên Android
-        final bool isRooted =
-            (await RootCheckerPlus.isRootChecker()) ?? false;
-        if (isRooted) {
-          emit(AntiCheatDeviceUnsafe(
-            reason: 'Thiết bị Android đã bị root.',
-          ));
-          return; // dừng lại, không cho thi
-        }
-      } else if (Platform.isIOS) {
-        // isJailbreak() — method riêng cho iOS
-        final bool isJailbroken =
-            (await RootCheckerPlus.isJailbreak()) ?? false;
-        if (isJailbroken) {
-          emit(AntiCheatDeviceUnsafe(
-            reason: 'Thiết bị iOS đã bị jailbreak.',
-          ));
-          return;
-        }
+     if (Platform.isAndroid || Platform.isIOS) {
+  await ScreenshotRecordingDetector.initialize();
+
+  _screenSubscription =
+      ScreenshotRecordingDetector.detectionStream.listen(
+    (DetectionEvent event) {
+
+      if (event.type == CaptureType.screenshot) {
+        onScreenshotDetected();
       }
+
+      if (event.type == CaptureType.recording &&
+          event.isRecording == true) {
+        onScreenRecordingDetected();
+      }
+    },
+  );
+}
     } on PlatformException {
       // Không check được — cho phép thi, không chặn
       // vì lỗi platform không phải lỗi của thí sinh
@@ -174,12 +178,30 @@ class AntiCheatCubit extends Cubit<AntiCheatState>
     // Bước 4: Đăng ký lắng nghe AppLifecycleState
     WidgetsBinding.instance.addObserver(this);
 
+    await ScreenshotRecordingDetector.initialize();
+
+     _screenSubscription =
+    ScreenshotRecordingDetector.detectionStream.listen(
+      (DetectionEvent event) {
+        if (event.type == CaptureType.screenshot) {
+          onScreenshotDetected();
+        }
+
+        if (event.type == CaptureType.recording &&
+            event.isRecording == true) {
+          onScreenRecordingDetected();
+        }
+      },
+    );
+
     emit(AntiCheatGuarding());
   }
 
   // ── DỪNG GIÁM SÁT (sau khi thi xong / bị khoá) ────────────────────────
 
   Future<void> stopGuarding() async {
+    await _screenSubscription?.cancel();
+    _screenSubscription = null;
     // Hủy lắng nghe AppLifecycle
     WidgetsBinding.instance.removeObserver(this);
 
@@ -246,6 +268,21 @@ class AntiCheatCubit extends Cubit<AntiCheatState>
     _handleViolation(ViolationType.splitScreen);
   }
 
+  // ── PHÁT HIỆN CHỤP MÀN HÌNH ──────────────────────────────────────────
+  void onScreenshotDetected() {
+    if (state is! AntiCheatGuarding) return;
+
+    _handleViolation(ViolationType.screenshot);
+  }
+
+  // ── PHÁT HIỆN QUAY MÀN HÌNH ──────────────────────────────────────────
+  void onScreenRecordingDetected() {
+    if (state is! AntiCheatGuarding) return;
+
+  // Tạm thời dùng cùng loại vi phạm screenshot
+  _handleViolation(ViolationType.screenshot);
+}
+
   // ── XỬ LÝ VI PHẠM TRUNG TÂM ──────────────────────────────────────────
 
   void _handleViolation(ViolationType type) {
@@ -302,8 +339,12 @@ class AntiCheatCubit extends Cubit<AntiCheatState>
   // ── CLEANUP ───────────────────────────────────────────────────────────
 
   @override
-  Future<void> close() {
+  Future<void> close() async {
+
+    await _screenSubscription?.cancel();
+
     WidgetsBinding.instance.removeObserver(this);
+
     return super.close();
   }
 }
