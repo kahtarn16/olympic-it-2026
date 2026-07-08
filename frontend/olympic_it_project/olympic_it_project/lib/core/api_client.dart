@@ -17,7 +17,7 @@ class ApiClient {
   static final ApiClient instance = ApiClient._internal();
   ApiClient._internal();
 
-  static const String host = "http://172.27.240.1:8080";
+  static const String host = "http://10.105.251.199:8080";
   final String _baseUrl = "$host/api/";
 
   Uri _buildUri(String endpoint) {
