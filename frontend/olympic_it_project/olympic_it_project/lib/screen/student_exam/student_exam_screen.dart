@@ -45,17 +45,10 @@ class _StudentExamScreenState extends State<StudentExamScreen>
   bool submitted = false;
   bool submitting = false;
 
-  // Thông tin câu hỏi sắp tới, nhận được ngay từ lúc PREVIEW (trước khi có
-  // đầy đủ questionData ở SHOW_QUESTION) — dùng để hiển thị loại câu hỏi,
-  // độ khó, điểm số ngay tại màn đếm ngược chuẩn bị.
   String? previewType;
   String? previewLevel;
   int? previewScore;
 
-  // Cờ đánh dấu đang trong lúc hiển thị dialog xác nhận đáp án / bài tự luận.
-  // Dùng để khóa toàn bộ lựa chọn khác NGAY khi người dùng bấm chọn,
-  // chứ không đợi tới khi submitting=true (tránh trường hợp bấm nhiều đáp án
-  // liên tiếp trong lúc dialog xác nhận đầu tiên còn đang mở).
   bool _confirmingAnswer = false;
 
   StudentExamResultResponse? examResult;
@@ -70,13 +63,9 @@ class _StudentExamScreenState extends State<StudentExamScreen>
   bool get _isEssay =>
       question?.type == "ESSAY_TEXT" || question?.type == "ESSAY_MEDIA";
 
-  // Đã chọn / đã khóa bài làm cho câu hỏi hiện tại hay chưa
   bool get _isLocked =>
       submitted || submitting || _confirmingAnswer || selectedOptionId != null;
 
-  // ================= NHÃN HIỂN THỊ =================
-
-  // Gộp MCQ_TEXT/MCQ_MEDIA -> "Trắc nghiệm", ESSAY_TEXT/ESSAY_MEDIA -> "Tự luận"
   String _typeLabel(String? type) {
     if (type == null) return "";
     if (type.startsWith("MCQ")) return "Trắc nghiệm";
@@ -124,7 +113,6 @@ class _StudentExamScreenState extends State<StudentExamScreen>
     }
   }
 
-  // --- Helper: ghép URL ảnh tương đối (vd "/uploads/...") thành URL đầy đủ ---
   String? _fullImageUrl(String? path) {
     if (path == null || path.trim().isEmpty) return null;
     if (path.startsWith('http://') || path.startsWith('https://')) {
@@ -154,7 +142,6 @@ class _StudentExamScreenState extends State<StudentExamScreen>
     super.dispose();
   }
 
-  // --- Anti-cheat: LEAVE_APP / BACK_APP qua vòng đời app ---
   @override
   void didChangeAppLifecycleState(AppLifecycleState stateApp) {
     if (state == "SHOW_QUESTION") {

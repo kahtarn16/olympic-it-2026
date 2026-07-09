@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:olympic_it_project/core/config.dart';
 import 'package:olympic_it_project/core/storage_token.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
 
@@ -18,9 +19,17 @@ class ExamStompService {
 
     _client = StompClient(
       config: StompConfig(
-        url: 'ws://10.0.2.2:8080/ws',
+        // Lấy WS_URL tập trung từ config.dart, không hardcode nữa
+        url: WS_URL,
 
-        stompConnectHeaders: {"Authorization": "Bearer $token"},
+        stompConnectHeaders: {
+          "Authorization": "Bearer $token",
+          if (IS_USING_NGROK) "ngrok-skip-browser-warning": "true",
+        },
+
+        webSocketConnectHeaders: {
+          if (IS_USING_NGROK) "ngrok-skip-browser-warning": "true",
+        },
 
         reconnectDelay: const Duration(seconds: 5),
 

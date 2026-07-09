@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:olympic_it_project/core/config.dart';
 import 'package:olympic_it_project/core/storage_token.dart';
 import 'package:olympic_it_project/service/auth_service.dart';
 
@@ -17,14 +18,20 @@ class ApiClient {
   static final ApiClient instance = ApiClient._internal();
   ApiClient._internal();
 
-  static const String host = "http://10.0.2.2:8080";
-  final String _baseUrl = "$host/api/";
+  // Giữ lại để tương thích với code cũ đang gọi ApiClient.host (ví dụ ghép URL ảnh)
+  static const String host = HOST;
+
+  // Lấy domain backend tập trung từ config.dart, không hardcode nữa.
+  // Khi đổi sang ngrok/emulator/IP LAN, chỉ cần sửa trong config.dart.
+  final String _baseUrl = API_BASE;
 
   Uri _buildUri(String endpoint) {
+    // Loại bỏ dấu gạch chéo ở đầu endpoint nếu có để tránh bị nhân đôi dấu //
     final normalizedEndpoint = endpoint.startsWith('/')
         ? endpoint.substring(1)
         : endpoint;
-    return Uri.parse(_baseUrl).resolve(normalizedEndpoint);
+
+    return Uri.parse("$_baseUrl$normalizedEndpoint");
   }
 
   bool _shouldRefresh(String endpoint) {
@@ -44,6 +51,8 @@ class ApiClient {
     return {
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
+      // Bỏ qua trang cảnh báo trung gian của ngrok free plan
+      if (IS_USING_NGROK) 'ngrok-skip-browser-warning': 'true',
     };
   }
 
@@ -173,6 +182,9 @@ class ApiClient {
 
     if (token != null) {
       request.headers["Authorization"] = "Bearer $token";
+    }
+    if (IS_USING_NGROK) {
+      request.headers["ngrok-skip-browser-warning"] = "true";
     }
 
     final file = File(filePath);
