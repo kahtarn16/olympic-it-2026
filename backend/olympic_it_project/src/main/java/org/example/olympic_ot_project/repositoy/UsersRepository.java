@@ -15,11 +15,19 @@ public interface UsersRepository extends JpaRepository<Users, Integer> {
     Boolean existsByUsername(String username);
     boolean existsByEmail(String email);
     List<Users> findByRole_Id(Integer roleId);
-    @Query("""
-    SELECT u FROM Users u
-    JOIN FETCH u.classes c
-    JOIN FETCH c.academicYear
-    WHERE u.id = :id
-""")
-    Optional<Users> findMe(Integer id);
+
+    Boolean existsByUsernameAndIdNot(String username, Integer id);
+    Boolean existsByEmailAndIdNot(String email, Integer id);
+
+    List<Users> findByRole_IdAndClasses_Id(
+            Integer roleId,
+            Integer classId
+    );
+    List<Users> findByRole_IdAndClasses_AcademicYear_Id(
+            Integer roleId,
+            Integer academicYearId
+    );
+
+    List<Users> findByRole_IdAndClasses_IdAndClasses_AcademicYear_Id(
+            Integer roleId, Integer classId, Integer academicYearId);
 }

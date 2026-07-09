@@ -57,21 +57,48 @@ public class StudentService {
         usersRepository.save(user);
     }
 
-    public List<StudentResponse> getAllStudents() {
-        return usersRepository.findByRole_Id(2)
-                .stream()
+    public List<StudentResponse> getAllStudents(Integer academicYearId, Integer classId) {
+
+        List<Users> students;
+
+        if (classId != null && academicYearId != null) {
+            // Lọc cả khóa lẫn lớp
+            students = usersRepository.findByRole_IdAndClasses_IdAndClasses_AcademicYear_Id(
+                    2, classId, academicYearId);
+        }
+        else if (classId != null) {
+            students = usersRepository.findByRole_IdAndClasses_Id(2, classId);
+        }
+        else if (academicYearId != null) {
+            students = usersRepository.findByRole_IdAndClasses_AcademicYear_Id(2, academicYearId);
+        }
+        else {
+            students = usersRepository.findByRole_Id(2);
+        }
+
+        return students.stream()
                 .map(this::toDto)
                 .toList();
     }
 
     private StudentResponse toDto(Users u) {
+
         StudentResponse dto = new StudentResponse();
+
         dto.setId(u.getId());
         dto.setUsername(u.getUsername());
         dto.setEmail(u.getEmail());
         dto.setFullName(u.getFullName());
-        dto.setClassId(u.getClasses().getId());
-        dto.setClassName(u.getClasses().getClassName());
+
+        if(u.getClasses() != null){
+            dto.setClassId(u.getClasses().getId());
+            dto.setClassName(u.getClasses().getClassName());
+        }
+
+        dto.setStatus(
+                u.getStatus().name()
+        );
+
         return dto;
     }
 
@@ -83,16 +110,15 @@ public class StudentService {
         Classes c = classesRepository.findById(request.getClassId())
                 .orElseThrow(() -> new AppException(ErrorCode.CLASSES_NOT_FOUND));
 
-        if(usersRepository.existsByUsername(request.getUsername())) {
+        if (usersRepository.existsByUsernameAndIdNot(request.getUsername(), id)) {
             throw new AppException(ErrorCode.USERNAME_USED);
+        }
+        if (usersRepository.existsByEmailAndIdNot(request.getEmail(), id)) {
+            throw new AppException(ErrorCode.EMAIL_USED);
         }
 
         if (usersRepository.existsByEmail(request.getEmail())) {
             throw new AppException(ErrorCode.EMAIL_USED);
-        }
-
-        if(classesRepository.existsById(request.getClassId())) {
-            throw new AppException(ErrorCode.USER_ALREADY_WITH_CLASS);
         }
 
         user.setFullName(request.getFullName());

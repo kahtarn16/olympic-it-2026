@@ -14,9 +14,15 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class ExamSessionResponse {
 
+    private String examName;
+
     private ExamState state;
 
     private Integer currentQuestionIndex;
+
+    private Integer totalQuestions;
+
+    private Integer totalParticipants;
 
     private Integer questionDuration;
 

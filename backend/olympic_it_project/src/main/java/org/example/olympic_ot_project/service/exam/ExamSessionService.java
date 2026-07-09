@@ -86,7 +86,6 @@ public class ExamSessionService {
         if (session.getState() != ExamState.ROOM_READY)
             throw new AppException(ErrorCode.INVALID_STATE);
 
-        // Dọn dữ liệu còn sót từ các lượt thi trước để tránh bị coi là "đã trả lời"
         progressRepository.deleteByExamId(examId);
 
         List<ExamParticipant> participants = examParticipantRepository.findByExamId(examId);
@@ -584,13 +583,47 @@ public class ExamSessionService {
 
         ExamSession session = getRequiredSession(examId);
 
+        int totalQuestions =
+                examQuestionRepository
+                        .findByExamIdOrderByOrderIndexAsc(examId)
+                        .size();
+
+
+        int totalParticipants =
+                examParticipantRepository
+                        .findByExamId(examId)
+                        .size();
+
+
         return ExamSessionResponse.builder()
+                .examName(session.getExam().getName())
+
                 .state(session.getState())
-                .currentQuestionIndex(session.getCurrentQuestionIndex())
-                .questionDuration(session.getQuestionDuration())
-                .currentQuestionStartedAt(session.getCurrentQuestionStartedAt())
-                .currentQuestionEndAt(session.getCurrentQuestionEndAt())
-                .locked(session.isLocked())
+
+                .currentQuestionIndex(
+                        session.getCurrentQuestionIndex()
+                )
+
+                .totalQuestions(totalQuestions)
+
+                .totalParticipants(totalParticipants)
+
+                .questionDuration(
+                        session.getQuestionDuration()
+                )
+
+                .currentQuestionStartedAt(
+                        session.getCurrentQuestionStartedAt()
+                )
+
+                .currentQuestionEndAt(
+                        session.getCurrentQuestionEndAt()
+                )
+
+                .locked(
+                        session.isLocked()
+                )
+
                 .build();
     }
 
@@ -722,5 +755,61 @@ public class ExamSessionService {
         payload.put("type", "RESET");
 
         messagingTemplate.convertAndSend("/topic/exam/" + examId, payload);
+    }
+
+    @Transactional(readOnly = true)
+    public void broadcastRoomUpdate(Integer examId) {
+
+        List<ExamParticipant> joined =
+                examParticipantRepository.findByExamIdAndStatus(
+                        examId,
+                        ParticipantStatus.JOINED
+                );
+
+        int total =
+                examParticipantRepository
+                        .findByExamId(examId)
+                        .size();
+
+        List<RoomParticipantDto> participants =
+                joined.stream()
+                        .map(p -> RoomParticipantDto.builder()
+                                .userId(
+                                        p.getUser().getId()
+                                )
+                                .fullName(
+                                        p.getUser().getFullName()
+                                )
+                                .className(
+                                        p.getUser().getClasses().getClassName() == null
+                                                ? ""
+                                                : p.getUser().getClasses().getClassName()
+                                )
+                                .build())
+                        .toList();
+
+        Map<String, Object> payload = new HashMap<>();
+
+        payload.put("type", "ROOM_UPDATE");
+
+        payload.put(
+                "joinedCount",
+                participants.size()
+        );
+
+        payload.put(
+                "totalParticipants",
+                total
+        );
+
+        payload.put(
+                "participants",
+                participants
+        );
+
+        messagingTemplate.convertAndSend(
+                "/topic/exam/" + examId,
+                payload
+        );
     }
 }

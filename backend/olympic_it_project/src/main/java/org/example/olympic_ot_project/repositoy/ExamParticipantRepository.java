@@ -20,4 +20,6 @@ public interface ExamParticipantRepository extends JpaRepository<ExamParticipant
     List<ExamParticipant> findMyExams(Integer userId);
 
     Boolean existsByExamIdAndUser_Username(Integer examId, String username);
+
+    List<ExamParticipant> findByExamIdAndStatus(Integer examId, Enum status);
 }

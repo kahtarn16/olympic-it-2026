@@ -10,4 +10,5 @@ public class StudentResponse {
     private String fullName;
     private String className;
     private Integer classId;
+    private String status;
 }

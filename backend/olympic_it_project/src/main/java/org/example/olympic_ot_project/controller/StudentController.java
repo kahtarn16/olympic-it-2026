@@ -25,8 +25,13 @@ public class StudentController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<StudentResponse>>> getAll() {
-        return ResponseEntity.ok(ApiResponse.success(studentService.getAllStudents()));
+    public ApiResponse<List<StudentResponse>> getAll(
+            @RequestParam(required = false) Integer academicYearId,
+            @RequestParam(required = false) Integer classId
+    ){
+        return ApiResponse.<List<StudentResponse>>builder()
+                .data(studentService.getAllStudents(academicYearId, classId))
+                .build();
     }
 
     @PutMapping("/{id}")

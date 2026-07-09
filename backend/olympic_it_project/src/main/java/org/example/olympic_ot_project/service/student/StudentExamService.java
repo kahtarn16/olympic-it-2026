@@ -57,6 +57,8 @@ public class StudentExamService {
         participant.setStatus(ParticipantStatus.JOINED);
         examParticipantRepository.save(participant);
 
+        examSessionService.broadcastRoomUpdate(examId);
+
         return JoinRoomResponse.builder()
                 .examId(examId)
                 .examName(exam.getName())
