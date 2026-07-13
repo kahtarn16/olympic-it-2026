@@ -17,4 +17,8 @@ public class WsPublisher {
     public void leaderboard(Integer examId, Object data) {
         template.convertAndSend("/topic/exam/" + examId + "/leaderboard", data);
     }
+
+    public void banNotice(Integer examId, Object data) {
+        template.convertAndSend("/topic/exam/" + examId + "/anti-cheat", data);
+    }
 }

@@ -2,6 +2,7 @@ package org.example.olympic_ot_project.service.exam;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.example.olympic_ot_project.core.AccountStudentStatus;
 import org.example.olympic_ot_project.core.ExamState;
 import org.example.olympic_ot_project.core.ExamStatus;
 import org.example.olympic_ot_project.core.ParticipantStatus;
@@ -11,6 +12,9 @@ import org.example.olympic_ot_project.enity.*;
 import org.example.olympic_ot_project.exception.AppException;
 import org.example.olympic_ot_project.exception.ErrorCode;
 import org.example.olympic_ot_project.repositoy.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -42,10 +46,15 @@ public class ExamSessionService {
     private final ExamParticipantProgressRepository progressRepository;
     private final QuestionOptionRepository optionRepository;
     private final QuestionRepository questionRepository;
+    private final ExamAntiCheatLogRepository antiCheatLogRepository;
 
     private final SimpMessagingTemplate messagingTemplate;
     private final TaskScheduler taskScheduler;
     private final UsersRepository usersRepository;
+
+    @Autowired
+    @Lazy
+    private ExamSessionService self;
 
     @PostConstruct
     public void resumePendingSessions() {
@@ -61,14 +70,14 @@ public class ExamSessionService {
 
             if (remain <= 0) {
                 if (session.getState() == ExamState.PREVIEW) {
-                    runQuestion(examId, session.getCurrentQuestionIndex());
+                    self.runQuestion(examId, session.getCurrentQuestionIndex());
                 } else {
-                    runAnswer(examId, session.getCurrentQuestionIndex());
+                    self.runAnswer(examId, session.getCurrentQuestionIndex());
                 }
             } else {
                 Runnable next = session.getState() == ExamState.PREVIEW
-                        ? () -> runQuestion(examId, session.getCurrentQuestionIndex())
-                        : () -> runAnswer(examId, session.getCurrentQuestionIndex());
+                        ? () -> self.runQuestion(examId, session.getCurrentQuestionIndex())
+                        : () -> self.runAnswer(examId, session.getCurrentQuestionIndex());
                 schedule(examId, next, (int) remain);
             }
         }
@@ -98,18 +107,17 @@ public class ExamSessionService {
         session.setCurrentQuestionIndex(0);
         examSessionRepository.save(session);
 
-        runPreview(examId, 0);
+        self.runPreview(examId, 0);
     }
 
     @Transactional
-    @PreAuthorize("hasRole('ADMIN')")
     public void runPreview(Integer examId, int index) {
 
         ExamSession session = getRequiredSession(examId);
         List<ExamQuestion> questions = getQuestions(examId);
 
         if (index >= questions.size()) {
-            finishExam(examId, session, questions.size());
+            self.finishExam(examId, session, questions.size());
             return;
         }
 
@@ -127,6 +135,7 @@ public class ExamSessionService {
                         .type(q.getType())
                         .level(q.getLevel())
                         .score(q.getScore())
+                        .category(q.getCategory() != null ? q.getCategory().getName() : null)
                         .build();
 
         Map<String, Object> payload = new HashMap<>();
@@ -135,18 +144,17 @@ public class ExamSessionService {
 
         messagingTemplate.convertAndSend("/topic/exam/" + examId, payload);
 
-        schedule(examId, () -> runQuestion(examId, index), PREVIEW_DURATION_SECONDS);
+        schedule(examId, () -> self.runQuestion(examId, index), PREVIEW_DURATION_SECONDS);
     }
 
     @Transactional
-    @PreAuthorize("hasRole('ADMIN')")
     public void runQuestion(Integer examId, int index) {
 
         ExamSession session = getRequiredSession(examId);
         List<ExamQuestion> questions = getQuestions(examId);
 
         if (index >= questions.size()) {
-            finishExam(examId, session, questions.size());
+            self.finishExam(examId, session, questions.size());
             return;
         }
 
@@ -171,11 +179,10 @@ public class ExamSessionService {
 
         messagingTemplate.convertAndSend("/topic/exam/" + examId, payload);
 
-        schedule(examId, () -> runAnswer(examId, index), timeLimit);
+        schedule(examId, () -> self.runAnswer(examId, index), timeLimit);
     }
 
     @Transactional
-    @PreAuthorize("hasRole('ADMIN')")
     public void runAnswer(Integer examId, int index) {
 
         ExamSession session = getRequiredSession(examId);
@@ -235,6 +242,57 @@ public class ExamSessionService {
         return user.getId();
     }
 
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('ADMIN')")
+    public ExamRestoreResponse getAdminSessionDetail(Integer examId) {
+
+        examRepository.findById(examId)
+                .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
+
+        List<ExamQuestion> questions = getQuestions(examId);
+
+        Optional<ExamSession> optionalSession =
+                examSessionRepository.findByExamId(examId);
+
+        if (optionalSession.isEmpty()) {
+            return ExamRestoreResponse.builder()
+                    .state(ExamState.WAITING.name())
+                    .currentQuestionIndex(null)
+                    .totalQuestions(questions.size())
+                    .currentQuestion(null)
+                    .remainingSeconds(0L)
+                    .build();
+        }
+
+        ExamSession session = optionalSession.get();
+
+        QuestionDetailDto dto = null;
+
+        if (session.getCurrentQuestionIndex() != null && session.getCurrentQuestionIndex() < questions.size()) {
+            Question q = getQuestion(questions, session.getCurrentQuestionIndex());
+            dto = mapToQuestionDetail(q);
+        }
+
+        long remain = 0;
+
+        if (session.getCurrentQuestionEndAt() != null) {
+            remain = Math.max(
+                    0,
+                    Duration.between(
+                                    LocalDateTime.now(),
+                                    session.getCurrentQuestionEndAt())
+                            .getSeconds());
+        }
+
+        return ExamRestoreResponse.builder()
+                .state(session.getState().name())
+                .currentQuestionIndex(session.getCurrentQuestionIndex())
+                .totalQuestions(questions.size())
+                .currentQuestion(dto)
+                .remainingSeconds(remain)
+                .build();
+    }
+
     @Transactional
     public SubmitAnswerResponse submitAnswer(
             Integer examId,
@@ -273,12 +331,12 @@ public class ExamSessionService {
                                         ErrorCode.PARTICIPANT_NOT_FOUND
                                 ));
 
-        if (participant.getStatus()
-                != ParticipantStatus.JOINED) {
+        if (participant.getStatus() == ParticipantStatus.BANNED) {
+            throw new AppException(ErrorCode.PARTICIPANT_BANNED);
+        }
 
-            throw new AppException(
-                    ErrorCode.PARTICIPANT_NOT_JOINED
-            );
+        if (participant.getStatus() != ParticipantStatus.JOINED) {
+            throw new AppException(ErrorCode.PARTICIPANT_NOT_JOINED);
         }
 
         ExamParticipantProgress progress =
@@ -387,6 +445,20 @@ public class ExamSessionService {
                 LocalDateTime.now()
         );
 
+        try {
+            progressRepository.save(progress);
+        } catch (DataIntegrityViolationException e) {
+            ExamParticipantProgress existing = progressRepository
+                    .findByExamIdAndUserIdAndQuestionIndex(examId, userId, index)
+                    .orElseThrow(() -> new AppException(ErrorCode.INVALID_QUESTION_STATE));
+
+            return SubmitAnswerResponse.builder()
+                    .questionIndex(index)
+                    .isCorrect(existing.getIsCorrect())
+                    .currentScore(participant.getScore())
+                    .build();
+        }
+
         if(correct){
 
             participant.setScore(
@@ -399,8 +471,6 @@ public class ExamSessionService {
                     participant
             );
         }
-
-        progressRepository.save(progress);
 
         Map<String, Object> submittedPayload = new HashMap<>();
         submittedPayload.put("type", "ANSWER_SUBMITTED");
@@ -419,11 +489,27 @@ public class ExamSessionService {
                 .build();
     }
 
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
+    public void unbanParticipant(Integer examId, Integer userId) {
+
+        ExamParticipant participant = examParticipantRepository
+                .findByExamIdAndUserId(examId, userId)
+                .orElseThrow(() -> new AppException(ErrorCode.PARTICIPANT_NOT_FOUND));
+
+        if (participant.getStatus() != ParticipantStatus.BANNED) {
+            throw new AppException(ErrorCode.INVALID_STATE);
+        }
+        participant.setStatus(ParticipantStatus.INVITED);
+        examParticipantRepository.save(participant);
+
+        broadcastRoomUpdate(examId);
+    }
+
 
 
     // ================= FINISH =================
     @Transactional
-    @PreAuthorize("hasRole('ADMIN')")
     public void finishExam(Integer examId, ExamSession session, int total) {
 
         cancelTask(examId);
@@ -502,21 +588,14 @@ public class ExamSessionService {
                 .type(q.getType())
                 .level(q.getLevel())
                 .score(q.getScore())
-
-                .options(
-                        q.getOptions()==null
-                                ?
-                                List.of()
-                                :
-                                q.getOptions()
-                                        .stream()
-                                        .map(o ->
-                                                OptionDto.builder()
-                                                        .id(o.getId())
-                                                        .label(o.getLabel())
-                                                        .contentText(o.getContentText())
-                                                        .imageUrl(o.getImageUrl())
-                                                        .build()).toList()).build();
+                .category(q.getCategory() != null ? q.getCategory().getName() : null)
+                .options(q.getOptions()==null ? List.of() : q.getOptions().stream().map(o ->
+                        OptionDto.builder()
+                                .id(o.getId())
+                                .label(o.getLabel())
+                                .contentText(o.getContentText())
+                                .imageUrl(o.getImageUrl())
+                                .build()).toList()).build();
     }
 
     private List<Leaderboard> buildLeaderboard(Integer examId) {
@@ -571,11 +650,11 @@ public class ExamSessionService {
         int nextIndex = currentIndex + 1;
 
         if (nextIndex >= questions.size()) {
-            finishExam(examId, session, questions.size());
+            self.finishExam(examId, session, questions.size());
             return;
         }
 
-        runPreview(examId, nextIndex);
+        self.runPreview(examId, nextIndex);
     }
 
     @Transactional(readOnly = true)
@@ -669,6 +748,23 @@ public class ExamSessionService {
         examRepository.findById(examId)
                 .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
 
+        Integer userId = getCurrentUserId();
+
+        ExamParticipant participant = examParticipantRepository
+                .findByExamIdAndUserId(examId, userId)
+                .orElse(null);
+
+        if (participant == null || participant.getStatus() == ParticipantStatus.BANNED) {
+            throw new AppException(ErrorCode.PARTICIPANT_NOT_FOUND);
+        }
+
+        Users user = usersRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        if (user.getStatus() == AccountStudentStatus.LOCKED) {
+            throw new AppException(ErrorCode.PARTICIPANT_BANNED);
+        }
+
         List<ExamQuestion> questions = getQuestions(examId);
 
         Optional<ExamSession> optionalSession =
@@ -688,13 +784,8 @@ public class ExamSessionService {
 
         QuestionDetailDto dto = null;
 
-        if (session.getCurrentQuestionIndex() != null
-                && session.getCurrentQuestionIndex() < questions.size()) {
-
-            Question q = getQuestion(
-                    questions,
-                    session.getCurrentQuestionIndex());
-
+        if (session.getCurrentQuestionIndex() != null && session.getCurrentQuestionIndex() < questions.size()) {
+            Question q = getQuestion(questions, session.getCurrentQuestionIndex());
             dto = mapToQuestionDetail(q);
         }
 
@@ -719,6 +810,7 @@ public class ExamSessionService {
     }
 
     @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
     public void resetExam(Integer examId) {
         cancelTask(examId);
 
@@ -746,7 +838,15 @@ public class ExamSessionService {
             p.setScore(0);
             p.setStatus(ParticipantStatus.INVITED);
         });
+        examParticipantRepository.saveAll(participants);
 
+        antiCheatLogRepository.deleteByExamId(examId);
+        List<Users> bannedUsers = participants.stream()
+                .map(ExamParticipant::getUser)
+                .filter(u -> u.getStatus() == AccountStudentStatus.LOCKED)
+                .toList();
+        bannedUsers.forEach(u -> u.setStatus(AccountStudentStatus.ACTIVE));
+        usersRepository.saveAll(bannedUsers);
         examParticipantRepository.saveAll(participants);
 
         progressRepository.deleteByExamId(examId);
@@ -760,56 +860,26 @@ public class ExamSessionService {
     @Transactional(readOnly = true)
     public void broadcastRoomUpdate(Integer examId) {
 
-        List<ExamParticipant> joined =
-                examParticipantRepository.findByExamIdAndStatus(
-                        examId,
-                        ParticipantStatus.JOINED
-                );
+        List<ExamParticipant> joined = examParticipantRepository.findByExamIdAndStatus(examId, ParticipantStatus.JOINED);
 
-        int total =
-                examParticipantRepository
-                        .findByExamId(examId)
-                        .size();
+        int total = examParticipantRepository.findByExamId(examId).size();
 
         List<RoomParticipantDto> participants =
                 joined.stream()
                         .map(p -> RoomParticipantDto.builder()
-                                .userId(
-                                        p.getUser().getId()
-                                )
-                                .fullName(
-                                        p.getUser().getFullName()
-                                )
-                                .className(
-                                        p.getUser().getClasses().getClassName() == null
-                                                ? ""
-                                                : p.getUser().getClasses().getClassName()
-                                )
+                                .userId(p.getUser().getId())
+                                .fullName(p.getUser().getFullName())
+                                .className(p.getUser().getClasses().getClassName() == null ? "" : p.getUser().getClasses().getClassName())
                                 .build())
                         .toList();
 
         Map<String, Object> payload = new HashMap<>();
 
         payload.put("type", "ROOM_UPDATE");
+        payload.put("joinedCount", participants.size());
+        payload.put("totalParticipants", total);
+        payload.put("participants", participants);
 
-        payload.put(
-                "joinedCount",
-                participants.size()
-        );
-
-        payload.put(
-                "totalParticipants",
-                total
-        );
-
-        payload.put(
-                "participants",
-                participants
-        );
-
-        messagingTemplate.convertAndSend(
-                "/topic/exam/" + examId,
-                payload
-        );
+        messagingTemplate.convertAndSend("/topic/exam/" + examId, payload);
     }
 }

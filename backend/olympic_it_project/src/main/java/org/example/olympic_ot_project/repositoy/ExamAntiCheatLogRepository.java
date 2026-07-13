@@ -17,4 +17,8 @@ public interface ExamAntiCheatLogRepository
     );
 
     List<ExamAntiCheatLog> findByExamIdOrderByCreatedAtDesc(Integer examId);
+
+    Integer countByExamIdAndUserId(Integer examId, Integer userId);
+
+    void deleteByExamId(Integer examId);
 }

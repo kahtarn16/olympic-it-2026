@@ -60,4 +60,17 @@ public class ExamSessionController {
     public void reset(@PathVariable Integer examId) {
         examSessionService.resetExam(examId);
     }
+
+    @GetMapping("/{examId}/admin-restore")
+    public ExamRestoreResponse adminRestore(@PathVariable Integer examId) {
+        return examSessionService.getAdminSessionDetail(examId);
+    }
+
+    @PostMapping("/{examId}/participants/{userId}/unban")
+    public void unbanParticipant(
+            @PathVariable Integer examId,
+            @PathVariable Integer userId
+    ) {
+        examSessionService.unbanParticipant(examId, userId);
+    }
 }

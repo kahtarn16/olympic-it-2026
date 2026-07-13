@@ -1,5 +1,6 @@
 package org.example.olympic_ot_project.repositoy;
 
+import org.example.olympic_ot_project.core.ParticipantStatus;
 import org.example.olympic_ot_project.enity.ExamParticipant;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -22,4 +23,5 @@ public interface ExamParticipantRepository extends JpaRepository<ExamParticipant
     Boolean existsByExamIdAndUser_Username(Integer examId, String username);
 
     List<ExamParticipant> findByExamIdAndStatus(Integer examId, Enum status);
+    boolean existsByExamIdAndUser_UsernameAndStatusNot(Integer examId, String username, ParticipantStatus status);
 }

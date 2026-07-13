@@ -50,6 +50,10 @@ public class StudentExamService {
                 .findByExamIdAndUserId(examId, user.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.PARTICIPANT_NOT_FOUND));
 
+        if (participant.getStatus() == ParticipantStatus.BANNED) {
+            throw new AppException(ErrorCode.PARTICIPANT_BANNED);
+        }
+
         if (session.getState() == ExamState.WAITING) {
             throw new AppException(ErrorCode.ROOM_NOT_READY);
         }

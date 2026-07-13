@@ -22,5 +22,6 @@ public class QuestionDetailDto {
     private String imageUrl;
     private String videoUrl;
     private Integer timeLimit;
+    private String category;
     private List<OptionDto> options;
 }

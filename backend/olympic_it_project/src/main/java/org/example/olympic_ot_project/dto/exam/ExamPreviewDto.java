@@ -8,10 +8,11 @@ import org.example.olympic_ot_project.core.QuestionType;
 @Data
 @Builder
 public class ExamPreviewDto {
-    private Integer index;
-    private Integer totalQuestions;
-    private Integer duration;
+    private int index;
+    private int totalQuestions;
+    private int duration;
     private QuestionType type;
     private QuestionLevel level;
     private Integer score;
+    private String category;
 }

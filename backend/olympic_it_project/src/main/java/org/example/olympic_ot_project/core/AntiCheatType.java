@@ -5,5 +5,7 @@ public enum AntiCheatType {
     BACK_APP,
     SCREENSHOT,
     RECORD_START,
-    RECORD_STOP
+    RECORD_STOP,
+    OUT_OF_FOCUS,
+    PHONE_CALL
 }

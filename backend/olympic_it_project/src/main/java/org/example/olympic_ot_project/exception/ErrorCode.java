@@ -79,7 +79,8 @@ public enum ErrorCode {
     EXAM_NOT_RUNNING(1069, "Phòng thi không hoạt động"),
     UNAUTHENTICATED(1070,"Chưa được xác thực"),
     DUPLICATE_ANTI_CHEAT_EVENT(1071, "Log bị trùng lặp"),
-    EXAM_NOT_FINISHED(1072, "Bài thi chưa hoàn thành, không thể xem kết quả");
+    EXAM_NOT_FINISHED(1072, "Bài thi chưa hoàn thành, không thể xem kết quả"),
+    PARTICIPANT_BANNED(1073, "Bạn đã bị cấm thi do vi phạm quy chế nhiều lần");
 
 
     private final int code;

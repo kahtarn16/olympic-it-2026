@@ -2,6 +2,7 @@ package org.example.olympic_ot_project.config;
 
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
+import org.example.olympic_ot_project.core.ParticipantStatus;
 import org.example.olympic_ot_project.repositoy.ExamParticipantRepository;
 import org.example.olympic_ot_project.service.auth.CustomUserDetailsService;
 import org.example.olympic_ot_project.service.auth.JwtService;
@@ -126,7 +127,9 @@ public class ExamChannelInterceptor implements ChannelInterceptor {
         }
         if (isUser) {
             boolean allowed = examParticipantRepository
-                    .existsByExamIdAndUser_Username(examId, username);
+                    .existsByExamIdAndUser_UsernameAndStatusNot(
+                            examId, username, ParticipantStatus.BANNED
+                    );
 
             if (!allowed) {
                 return null;
