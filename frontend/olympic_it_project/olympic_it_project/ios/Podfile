@@ -1,11 +1,19 @@
-# Uncomment this line to define a global platform for your project
-platform :ios, '16.0'
+# Sửa lại đường dẫn tương đối để trỏ đúng về thư mục lưu script của Flutter
+flutter_ios_podfile_setup = File.expand_path(File.join('..', '..', '..', '..', '.symlinks', 'plugins', 'flutter_ios_podfile_setup', 'ios', 'podfile_setup.rb'), __FILE__)
+if File.exist?(flutter_ios_podfile_setup)
+  require flutter_ios_podfile_setup
+else
+  # Bản fallback tự động tìm script thông qua symlink thông thường của Flutter
+  target_path = File.expand_path(File.join('..', '..', 'flutter'), __FILE__)
+  if !File.exist?(target_path)
+    # Thử tìm theo cấu trúc lồng sâu của bạn nếu symlink chưa tạo
+    target_path = File.expand_path(File.join('..', '.symlinks', 'flutter'), __FILE__)
+  end
+  # Đoạn load mặc định của Flutter gốc
+  load File.join(target_path, 'packages', 'flutter_tools', 'bin', 'xcode_backend.dart')
+end
 
-# CocoaPods analytics are used to measure features used and provide guides
-# For more information, see https://github.com/CocoaPods/CocoaPods/issues/4386
-plugin 'cocoapods-art', :sources => [
-  'cocoapods'
-]
+platform :ios, '13.0'
 
 target 'Runner' do
   use_frameworks!
@@ -14,8 +22,8 @@ target 'Runner' do
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 end
 
-post_install do |installer|
-  installer.pods_project.targets.each do |target|
+post_install do |sender|
+  sender.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
   end
 end
