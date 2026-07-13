@@ -59,4 +59,36 @@ class ExamService {
     final apiResponse = ApiResponse.fromJson(jsonMap, (d) => d);
     if (apiResponse.code != 200) throw Exception(apiResponse.message);
   }
+<<<<<<< HEAD
+=======
+
+  Future<void> removeParticipant(int examId, int userId) async {
+    final response = await _api.delete(
+      'admin/exam/participant?examId=$examId&userId=$userId',
+    );
+    _checkResponse(response);
+  }
+
+  Future<PageResponse<ExamResponse>> getAllPaged({
+    required int page,
+    required int size,
+    String? keyword,
+  }) async {
+    final response = await _api.get(
+      'admin/exam?page=$page&size=$size&keyword=${keyword ?? ""}',
+    );
+
+    final json = safeDecode(response);
+
+    final api = ApiResponse<PageResponse<ExamResponse>>.fromJson(
+      json,
+      (data) => PageResponse<ExamResponse>.fromJson(
+        data,
+        (e) => ExamResponse.fromJson(e),
+      ),
+    );
+
+    return api.data!;
+  }
+>>>>>>> 0ca806ac24e22d0e1ac4d6a94cd1a09ba8e577fa
 }
