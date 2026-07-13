@@ -1,12 +1,15 @@
 {
-  "project": "olympic-it-2026",
+  "project": "olympic_it_project",
   "platform": "ios",
   "github": {
     "owner": "kahtarn16",
     "repo": "olympic-it-2026"
   },
-  "ios": {},
+  "ios": {
+    "path": "ios"
+  },
   "flutter": {
+    "version": "3.44.2",
     "watch": {}
   },
   "reactNative": {},
