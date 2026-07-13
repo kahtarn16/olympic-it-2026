@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:olympic_it_project/core/api_client.dart';
 import 'package:olympic_it_project/core/api_exception.dart';
 import 'package:olympic_it_project/core/api_response.dart';
+import 'package:olympic_it_project/core/page_response.dart';
+import 'package:olympic_it_project/dto/admin_manager/exam/exam_response.dart';
 import 'package:olympic_it_project/dto/admin_manager/exam/exam_restore_response.dart';
 import 'package:olympic_it_project/dto/profile/submit_answer_response.dart';
 
@@ -59,8 +61,6 @@ class ExamService {
     final apiResponse = ApiResponse.fromJson(jsonMap, (d) => d);
     if (apiResponse.code != 200) throw Exception(apiResponse.message);
   }
-<<<<<<< HEAD
-=======
 
   Future<void> removeParticipant(int examId, int userId) async {
     final response = await _api.delete(
@@ -90,5 +90,4 @@ class ExamService {
 
     return api.data!;
   }
->>>>>>> 0ca806ac24e22d0e1ac4d6a94cd1a09ba8e577fa
 }
