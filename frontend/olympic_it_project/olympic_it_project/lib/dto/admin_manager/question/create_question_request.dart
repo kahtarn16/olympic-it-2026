@@ -12,7 +12,7 @@ class CreateQuestionRequest {
   final int? timeLimit;
   final String? imageUrl;
   final String? videoUrl;
-  final List<CreateQuestionOptionRequest>? options;
+  final List<CreateQuestionOptionRequest> options; 
 
   CreateQuestionRequest({
     required this.content,
@@ -24,26 +24,21 @@ class CreateQuestionRequest {
     required this.categoryId,
     this.imageUrl,
     this.videoUrl,
-    this.options,
+    required this.options,
   });
 
   Map<String, dynamic> toJson() {
-    final data = {
+    return {
       "content": content,
       "type": type.name,
       "level": level.name,
       "answer": answer,
       "score": score,
-      "timeLimit": timeLimit,
+      "timeLimit" : timeLimit,
       "categoryId": categoryId,
       "imageUrl": imageUrl,
       "videoUrl": videoUrl,
+      "options": options.map((option) => option.toJson()).toList(),
     };
-
-    if (options != null) {
-      data["options"] = options!.map((option) => option.toJson()).toList();
-    }
-
-    return data;
   }
 }

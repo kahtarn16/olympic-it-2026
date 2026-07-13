@@ -19,7 +19,6 @@ class ExamStompService {
 
     _client = StompClient(
       config: StompConfig(
-        // Lấy WS_URL tập trung từ config.dart, không hardcode nữa
         url: WS_URL,
 
         stompConnectHeaders: {

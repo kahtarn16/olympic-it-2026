@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:olympic_it_project/core/api_client.dart';
+import 'package:olympic_it_project/core/api_exception.dart';
 import 'package:olympic_it_project/core/api_response.dart';
 import 'package:olympic_it_project/dto/admin_manager/exam/exam_session_response.dart';
 import 'package:olympic_it_project/dto/profile/exam_session_dto.dart';
@@ -64,17 +65,20 @@ class ProfileStudentService {
   }
 
   Future<JoinRoomResponse> joinRoom(int examId) async {
-    final response = await _api.post('student/exam/$examId/join', {});
+  final response = await _api.post('student/exam/$examId/join', {});
+  final jsonMap = safeDecode(response);
 
-    final jsonMap = safeDecode(response);
+  final apiResponse = ApiResponse<JoinRoomResponse>.fromJson(
+    jsonMap,
+    (data) => JoinRoomResponse.fromJson(data as Map<String, dynamic>),
+  );
 
-    final apiResponse = ApiResponse<JoinRoomResponse>.fromJson(
-      jsonMap,
-      (data) => JoinRoomResponse.fromJson(data as Map<String, dynamic>),
-    );
-
-    return apiResponse.data!;
+  if (apiResponse.code != 200 || apiResponse.data == null) {
+    throw ApiException(apiResponse.code, apiResponse.message);
   }
+
+  return apiResponse.data!;
+}
 
   Future<ExamSessionDto> getExamSession(int examId) async {
     final response = await _api.get('student/exam/$examId/session');

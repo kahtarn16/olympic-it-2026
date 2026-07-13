@@ -47,31 +47,14 @@ class _ExamDetailsStudentScreenState extends State<ExamDetailsStudentScreen> {
     }
   }
 
-  Future<void> _reconnect() async {
-  try {
-    await _service.joinRoom(widget.examId);
-  } catch (e) {
-    debugPrint("joinRoom trước khi reconnect lỗi (có thể đã join rồi): $e");
-  }
-
-  try {
-    final session = await _service.getExamSession(widget.examId);
-
-    if (!mounted) return;
+  void _reconnect() {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            StudentExamScreen(examId: widget.examId, session: session),
+        builder: (_) => StudentExamScreen(examId: widget.examId),
       ),
     );
-  } catch (e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(e.toString())));
   }
-}
 
   Future<void> _viewResult() async {
     try {

@@ -7,7 +7,6 @@ class QuestionDetailResponse {
   final String content;
   final String? answer;
   final int score;
-  final int timeLimit;
   final String? imageUrl;
   final String? videoUrl;
   final QuestionType type;
@@ -21,7 +20,6 @@ class QuestionDetailResponse {
     required this.content,
     required this.answer,
     required this.score,
-    required this.timeLimit,
     required this.imageUrl,
     required this.videoUrl,
     required this.type,
@@ -37,7 +35,6 @@ class QuestionDetailResponse {
       content: json["content"],
       answer: json["answer"],
       score: json["score"],
-      timeLimit: json["timeLimit"],
       imageUrl: json["imageUrl"],
       videoUrl: json["videoUrl"],
       type: QuestionType.values.firstWhere((e) => e.name == json["type"]),

@@ -7,6 +7,7 @@ class QuestionDetailDto {
   final String? imageUrl;
   final String? videoUrl;
   final int? timeLimit;
+  final String? category;
   final List<QuestionOptionDto> options;
 
   QuestionDetailDto({
@@ -18,6 +19,7 @@ class QuestionDetailDto {
     this.imageUrl,
     this.videoUrl,
     this.timeLimit,
+    this.category,
     required this.options,
   });
 
@@ -31,6 +33,7 @@ class QuestionDetailDto {
       imageUrl: json["imageUrl"],
       videoUrl: json["videoUrl"],
       timeLimit: json["timeLimit"],
+      category: json["category"],
       options: (json["options"] as List<dynamic>? ?? [])
           .map((e) => QuestionOptionDto.fromJson(e))
           .toList(),

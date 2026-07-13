@@ -2,7 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenguard/flutter_screenguard.dart';
+import 'package:olympic_it_project/core/api_exception.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:phone_state/phone_state.dart';
 import 'package:olympic_it_project/core/api_client.dart';
+import 'package:olympic_it_project/core/storage_token.dart';
 import 'package:olympic_it_project/dto/admin_manager/exam/question_detail_dto.dart';
 import 'package:olympic_it_project/dto/profile/exam_session_dto.dart';
 import 'package:olympic_it_project/screen/home/user_home_screen.dart';
@@ -28,16 +32,30 @@ class _StudentExamScreenState extends State<StudentExamScreen>
   final _stomp = ExamStompService();
   final _examService = ExamService();
   final _profileService = ProfileStudentService();
+  bool _isBannedError(Object e) {
+    return e is ApiException && e.code == 1073;
+  }
 
   late final FlutterScreenguard _screenguard;
   StreamSubscription? _screenshotSub;
   StreamSubscription? _recordingSub;
+
+  // ================= ANTI-CHEAT: PHONE CALL =================
+  StreamSubscription<PhoneState>? _phoneStateSub;
+  bool _wasRinging = false;
+
+  // ================= ANTI-CHEAT: OUT OF FOCUS =================
+  // Dùng để phân biệt "kéo thanh thông báo" (inactive -> resumed, không qua paused)
+  // với việc thực sự rời khỏi app (inactive -> paused).
+  Timer? _focusLossTimer;
+  bool _reallyLeftApp = false;
 
   String state = "WAITING";
   int currentIndex = 0;
   int total = 0;
   int remainingSeconds = 0;
   QuestionDetailDto? question;
+  String? previewCategory;
   int? correctOptionId;
   String? sampleAnswer;
   int currentScore = 0;
@@ -50,6 +68,10 @@ class _StudentExamScreenState extends State<StudentExamScreen>
   int? previewScore;
 
   bool _confirmingAnswer = false;
+
+  // ================= ANTI-CHEAT / BAN =================
+  bool _bannedDialogShown = false;
+  int? _myUserId;
 
   StudentExamResultResponse? examResult;
   bool loadingResult = false;
@@ -127,6 +149,7 @@ class _StudentExamScreenState extends State<StudentExamScreen>
     WidgetsBinding.instance.addObserver(this);
     _screenguard = FlutterScreenguard();
     _initScreenGuard();
+    _initPhoneCallDetection();
     _initExam();
   }
 
@@ -136,6 +159,8 @@ class _StudentExamScreenState extends State<StudentExamScreen>
     _screenshotSub?.cancel();
     _recordingSub?.cancel();
     _screenguard.unregister();
+    _phoneStateSub?.cancel();
+    _focusLossTimer?.cancel();
     timer?.cancel();
     _essayController.dispose();
     _stomp.disconnect();
@@ -144,13 +169,40 @@ class _StudentExamScreenState extends State<StudentExamScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState stateApp) {
-    if (state == "SHOW_QUESTION") {
-      if (stateApp == AppLifecycleState.paused ||
-          stateApp == AppLifecycleState.inactive) {
+    if (state != "SHOW_QUESTION") return;
+
+    switch (stateApp) {
+      case AppLifecycleState.inactive:
+        // Có thể là: kéo thanh thông báo, mở app switcher, hoặc bước đệm
+        // trước khi thực sự bị paused (rời app). Chờ 1 chút để phân biệt.
+        _focusLossTimer?.cancel();
+        _focusLossTimer = Timer(const Duration(milliseconds: 600), () {
+          _sendAntiCheatViolation("OUT_OF_FOCUS");
+        });
+        break;
+
+      case AppLifecycleState.paused:
+        // Thực sự rời khỏi app (bấm Home, mở app khác, chuyển task...)
+        _focusLossTimer?.cancel();
+        _reallyLeftApp = true;
         _sendAntiCheatViolation("LEAVE_APP");
-      } else if (stateApp == AppLifecycleState.resumed) {
-        _sendAntiCheatViolation("BACK_APP");
-      }
+        break;
+
+      case AppLifecycleState.resumed:
+        if (_focusLossTimer != null && _focusLossTimer!.isActive) {
+          // Quay lại trước khi timer kịp bắn -> đúng là kéo thanh thông báo
+          // rồi thả ra ngay, không thực sự rời app.
+          _focusLossTimer!.cancel();
+          _sendAntiCheatViolation("OUT_OF_FOCUS");
+        } else if (_reallyLeftApp) {
+          // Quay lại sau khi đã thực sự rời app (paused) trước đó.
+          _reallyLeftApp = false;
+          _sendAntiCheatViolation("BACK_APP");
+        }
+        break;
+
+      default:
+        break;
     }
   }
 
@@ -178,6 +230,61 @@ class _StudentExamScreenState extends State<StudentExamScreen>
     }
   }
 
+  // ================= ANTI-CHEAT: NGHE ĐIỆN THOẠI =================
+  // Chỉ tính lỗi khi cuộc gọi ĐẾN được BẮT MÁY (CALL_INCOMING -> CALL_STARTED).
+  // Nếu từ chối hoặc để chuông kêu rồi tự tắt (CALL_INCOMING -> CALL_ENDED/NOTHING)
+  // thì KHÔNG tính lỗi.
+  Future<void> _initPhoneCallDetection() async {
+    try {
+      final status = await Permission.phone.request();
+      if (!status.isGranted) {
+        debugPrint(
+          "Chưa cấp quyền READ_PHONE_STATE, bỏ qua giám sát cuộc gọi.",
+        );
+        return;
+      }
+    } catch (e) {
+      debugPrint("Lỗi request quyền phone: $e");
+      return;
+    }
+
+    _phoneStateSub = PhoneState.stream.listen(
+      (event) {
+        if (state != "SHOW_QUESTION") return;
+
+        switch (event.status) {
+          case PhoneStateStatus.CALL_INCOMING:
+            // Chuông đang reo, chưa bắt máy -> chưa tính lỗi.
+            _wasRinging = true;
+            break;
+
+          case PhoneStateStatus.CALL_STARTED:
+            // Chỉ tính lỗi nếu ngay trước đó là cuộc gọi ĐẾN đang đổ chuông.
+            if (_wasRinging) {
+              _wasRinging = false;
+              _sendAntiCheatViolation("PHONE_CALL");
+            }
+            break;
+
+          case PhoneStateStatus.CALL_OUTGOING:
+            // Học sinh tự gọi đi -> không phải "bắt máy cuộc gọi đến" nên không tính lỗi,
+            // nhưng vẫn reset cờ ringing để tránh tính nhầm nếu sau đó có cuộc gọi đến khác.
+            _wasRinging = false;
+            break;
+
+          case PhoneStateStatus.CALL_ENDED:
+          case PhoneStateStatus.NOTHING:
+            // Từ chối / để im / cuộc gọi kết thúc -> không tính, reset cờ.
+            _wasRinging = false;
+            break;
+        }
+      },
+      onError: (e) {
+        debugPrint("Lỗi lắng nghe trạng thái cuộc gọi: $e");
+      },
+    );
+  }
+
   Future<void> _sendAntiCheatViolation(String violationType) async {
     try {
       await _examService.recordViolation(widget.examId, violationType);
@@ -187,10 +294,16 @@ class _StudentExamScreenState extends State<StudentExamScreen>
   }
 
   Future<void> _initExam() async {
+    _myUserId = await StorageToken.instance.getUserId();
+
     try {
       await _studentExamService.joinRoom(widget.examId);
     } catch (e) {
-      debugPrint("Join exam lỗi: $e");
+      if (_isBannedError(e)) {
+        await _showBannedDialog();
+        return;
+      }
+      debugPrint("Lỗi tham gia cuộc thi: $e");
     }
     if (widget.session != null) {
       _applySession(widget.session!);
@@ -203,6 +316,22 @@ class _StudentExamScreenState extends State<StudentExamScreen>
     await _restoreSession();
   }
 
+  Future<void> _loadExamResult() async {
+    setState(() => loadingResult = true);
+    try {
+      final res = await _profileService.getExamResult(widget.examId);
+      if (!mounted) return;
+      setState(() {
+        examResult = res;
+        loadingResult = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => loadingResult = false);
+      debugPrint("Lỗi lấy kết quả thi: $e");
+    }
+  }
+
   void _applySession(ExamSessionDto session) {
     setState(() {
       state = session.state;
@@ -213,6 +342,7 @@ class _StudentExamScreenState extends State<StudentExamScreen>
       previewType = question?.type;
       previewLevel = question?.level;
       previewScore = question?.score;
+      previewCategory = question?.category;
       correctOptionId = null;
       sampleAnswer = null;
       selectedOptionId = null;
@@ -254,6 +384,7 @@ class _StudentExamScreenState extends State<StudentExamScreen>
                 previewType = null;
                 previewLevel = null;
                 previewScore = null;
+                previewCategory = null;
                 _essayController.clear();
               });
               break;
@@ -269,6 +400,7 @@ class _StudentExamScreenState extends State<StudentExamScreen>
                 previewType = previewData?["type"] as String?;
                 previewLevel = previewData?["level"] as String?;
                 previewScore = previewData?["score"] as int?;
+                previewCategory = previewData?["category"] as String?;
                 question = null;
                 correctOptionId = null;
                 sampleAnswer = null;
@@ -298,6 +430,7 @@ class _StudentExamScreenState extends State<StudentExamScreen>
                 previewType = parsedQuestion?.type ?? previewType;
                 previewLevel = parsedQuestion?.level ?? previewLevel;
                 previewScore = parsedQuestion?.score ?? previewScore;
+                previewCategory = parsedQuestion?.category ?? previewCategory;
                 correctOptionId = null;
                 sampleAnswer = null;
                 selectedOptionId = null;
@@ -351,8 +484,20 @@ class _StudentExamScreenState extends State<StudentExamScreen>
                 previewType = null;
                 previewLevel = null;
                 previewScore = null;
+                previewCategory = null;
                 _essayController.clear();
               });
+              break;
+
+            case "ANTI_CHEAT":
+              final innerData = data["data"] as Map<String, dynamic>?;
+              final banned = innerData?["banned"] == true;
+              final violatedUserId = innerData?["userId"];
+
+              if (banned && violatedUserId == _myUserId) {
+                timer?.cancel();
+                _showBannedDialog();
+              }
               break;
           }
         } catch (e) {
@@ -388,6 +533,7 @@ class _StudentExamScreenState extends State<StudentExamScreen>
         previewType = question?.type;
         previewLevel = question?.level;
         previewScore = question?.score;
+        previewCategory = question?.category;
         correctOptionId = null;
         sampleAnswer = null;
         selectedOptionId = null;
@@ -402,34 +548,6 @@ class _StudentExamScreenState extends State<StudentExamScreen>
     } catch (e) {
       debugPrint("Restore lỗi: $e");
     }
-  }
-
-  Future<void> _loadExamResult() async {
-    setState(() => loadingResult = true);
-    try {
-      final res = await _profileService.getExamResult(widget.examId);
-      if (!mounted) return;
-      setState(() {
-        examResult = res;
-        loadingResult = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => loadingResult = false);
-      debugPrint("Lỗi lấy kết quả thi: $e");
-    }
-  }
-
-  bool _canSubmit() {
-    if (state != "SHOW_QUESTION" ||
-        submitted ||
-        submitting ||
-        _confirmingAnswer) {
-      return false;
-    }
-    if (_isMcq) return selectedOptionId != null;
-    if (_isEssay) return _essayController.text.trim().isNotEmpty;
-    return false;
   }
 
   Future<void> _submitAnswer({int? optionId, String? answerText}) async {
@@ -447,12 +565,13 @@ class _StudentExamScreenState extends State<StudentExamScreen>
         "answerText": answerText,
       };
 
-      final res = await _examService.submitAnswer(widget.examId, payload);
+      final res = await _examService
+          .submitAnswer(widget.examId, payload)
+          .timeout(const Duration(seconds: 8));
 
       if (!mounted) return;
       setState(() {
         submitted = true;
-        submitting = false;
         currentScore = res.currentScore;
       });
 
@@ -462,29 +581,41 @@ class _StudentExamScreenState extends State<StudentExamScreen>
           duration: Duration(milliseconds: 800),
         ),
       );
-    } catch (e) {
+    } on TimeoutException {
       if (!mounted) return;
-
-      debugPrint("submitAnswer lỗi (loại: ${e.runtimeType}): $e");
-
-      setState(() {
-        submitting = false;
-      });
-
+      // Server có thể đã nhận & tính điểm, chỉ là response không về kịp.
+      // Coi như đã nộp để tránh nộp trùng, đồng thời đồng bộ lại trạng thái thật.
+      setState(() => submitted = true);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Nộp bài thất bại: $e"),
-          backgroundColor: Colors.red,
-          action: SnackBarAction(
-            label: "Thử lại",
-            textColor: Colors.white,
-            onPressed: () {
-              setState(() => submitted = false);
-              _submitAnswer(optionId: optionId, answerText: answerText);
-            },
-          ),
+        const SnackBar(
+          content: Text("Đã gửi bài (đang đồng bộ lại kết quả)..."),
         ),
       );
+      await _restoreSession();
+    } catch (e) {
+      if (!mounted) return;
+      debugPrint("submitAnswer lỗi (loại: ${e.runtimeType}): $e");
+
+      if (_isBannedError(e)) {
+        await _showBannedDialog();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Nộp bài thất bại: $e"),
+            backgroundColor: Colors.red,
+            action: SnackBarAction(
+              label: "Thử lại",
+              textColor: Colors.white,
+              onPressed: () {
+                setState(() => submitted = false);
+                _submitAnswer(optionId: optionId, answerText: answerText);
+              },
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => submitting = false);
     }
   }
 
@@ -573,6 +704,41 @@ class _StudentExamScreenState extends State<StudentExamScreen>
     );
   }
 
+  // ================= ANTI-CHEAT: DIALOG CẤM THI =================
+  Future<void> _showBannedDialog() async {
+    if (!mounted || _bannedDialogShown) return;
+    _bannedDialogShown = true;
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.gpp_bad, color: Colors.red),
+            SizedBox(width: 8),
+            Text("Vi phạm quy chế thi"),
+          ],
+        ),
+        content: const Text(
+          "Bạn đã vi phạm quy chế thi 3 lần.\n"
+          "Bạn bị cấm tiếp tục làm bài và tài khoản của bạn đã bị khóa.\n"
+          "Vui lòng liên hệ giảng viên/quản trị viên để được hỗ trợ.",
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _goHome();
+            },
+            child: const Text("Đã hiểu", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ================= UI: BADGE DÙNG CHUNG =================
   Widget _badge({
     required IconData icon,
@@ -617,10 +783,8 @@ class _StudentExamScreenState extends State<StudentExamScreen>
     );
   }
 
-  // ================= PREVIEW SCREEN (VIP STYLE) =================
   Widget _buildPreview() {
-    // Ước lượng % thời gian còn lại để chạy vòng tròn tiến trình
-    const previewTotal = 5; // trùng PREVIEW_DURATION_SECONDS bên server
+    const previewTotal = 5;
     final progress = (remainingSeconds / previewTotal).clamp(0.0, 1.0);
 
     return Center(
@@ -756,7 +920,8 @@ class _StudentExamScreenState extends State<StudentExamScreen>
 
           if (previewType != null ||
               previewLevel != null ||
-              previewScore != null)
+              previewScore != null ||
+              previewCategory != null)
             Container(
               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
               margin: const EdgeInsets.symmetric(horizontal: 24),
@@ -775,6 +940,7 @@ class _StudentExamScreenState extends State<StudentExamScreen>
                 type: previewType,
                 level: previewLevel,
                 score: previewScore,
+                category: previewCategory,
                 alignment: MainAxisAlignment.center,
               ),
             ),
@@ -787,6 +953,7 @@ class _StudentExamScreenState extends State<StudentExamScreen>
     required String? type,
     required String? level,
     required int? score,
+    String? category,
     MainAxisAlignment alignment = MainAxisAlignment.start,
   }) {
     return Wrap(
@@ -806,6 +973,12 @@ class _StudentExamScreenState extends State<StudentExamScreen>
             icon: Icons.speed,
             label: "Độ khó: ${_levelLabel(level)}",
             color: _levelColor(level),
+          ),
+        if (category != null && category.isNotEmpty)
+          _badge(
+            icon: Icons.category_outlined,
+            label: category,
+            color: Colors.teal,
           ),
         if (score != null)
           _badge(
@@ -914,6 +1087,7 @@ class _StudentExamScreenState extends State<StudentExamScreen>
                     type: question!.type,
                     level: question!.level,
                     score: question!.score,
+                    category: question!.category,
                   ),
                 const Divider(height: 28),
               ],
@@ -1218,6 +1392,13 @@ class _StudentExamScreenState extends State<StudentExamScreen>
         ),
       ],
     );
+  }
+
+  bool _canSubmit() {
+    return !submitted &&
+        !submitting &&
+        !_confirmingAnswer &&
+        _essayController.text.trim().isNotEmpty;
   }
 
   Widget _buildAnswer() {

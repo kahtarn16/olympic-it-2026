@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:olympic_it_project/dto/auth/login/login_request.dart';
 import 'package:olympic_it_project/screen/auth/forgot_password_screen.dart';
-import 'package:olympic_it_project/screen/home/admin_home_screen.dart';
 import 'package:olympic_it_project/screen/home/user_home_screen.dart';
 import 'package:olympic_it_project/service/auth_service.dart';
 
@@ -35,8 +34,6 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text.trim(),
       );
 
-      
-
       final result = await AuthService().login(request);
 
       if (!mounted) return;
@@ -44,11 +41,14 @@ class _LoginScreenState extends State<LoginScreen> {
       final role = result.roleName.toUpperCase();
 
       if (role.contains("ADMIN")) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const AdminHomeScreen()),
-          (route) => false,
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Admin không được đăng nhập ở ứng dụng này"),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
         );
+        return;
       } else {
         Navigator.pushAndRemoveUntil(
           context,

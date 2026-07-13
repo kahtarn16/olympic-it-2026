@@ -15,9 +15,10 @@ dependencies:
   image_picker: ^1.1.2
   file_picker: ^10.3.2
   cached_network_image: ^3.4.1
+  flutter_screenguard: 2.0.0
   stomp_dart_client: ^2.0.0
-  flutter_screenguard:
-    path: packages/flutter_screenguard
+  phone_state: ^3.0.0
+  permission_handler: ^11.3.1
 
 dev_dependencies:
   flutter_test:

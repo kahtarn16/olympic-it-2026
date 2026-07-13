@@ -12,7 +12,7 @@ class UpdateQuestionRequest {
   final int timeLimit;
   final String? imageUrl;
   final String? videoUrl;
-  final List<CreateQuestionOptionRequest>? options;
+  final List<CreateQuestionOptionRequest> options;
 
   UpdateQuestionRequest({
     required this.content,
@@ -24,11 +24,11 @@ class UpdateQuestionRequest {
     required this.timeLimit,
     this.imageUrl,
     this.videoUrl,
-    this.options,
+    required this.options
   });
 
   Map<String, dynamic> toJson() {
-    final data = {
+    return {
       "content": content,
       "type": type.name,
       "level": level.name,
@@ -37,13 +37,8 @@ class UpdateQuestionRequest {
       "categoryId": categoryId,
       "imageUrl": imageUrl,
       "videoUrl": videoUrl,
+      "options": options.map((option) => option.toJson()).toList(),
       "timeLimit": timeLimit,
     };
-
-    if (options != null) {
-      data["options"] = options!.map((option) => option.toJson()).toList();
-    }
-
-    return data;
   }
 }

@@ -10,6 +10,14 @@ import 'package:olympic_it_project/dto/auth/login/login_request.dart';
 import 'package:olympic_it_project/dto/auth/login/login_response.dart';
 import 'package:olympic_it_project/dto/auth/refresh_token/refresh_token_request.dart';
 
+class SessionExpiredException implements Exception {
+  final String message;
+  SessionExpiredException([this.message = "Phiên đăng nhập đã hết hạn"]);
+
+  @override
+  String toString() => message;
+}
+
 class AuthService {
   final _api = ApiClient.instance;
 
@@ -31,10 +39,6 @@ class AuthService {
         apiResponse.data!.userId,
         apiResponse.data!.roleName,
       );
-
-      print("SAVE TOKEN XONG");
-      print(await StorageToken.instance.getAccessToken());
-      print(await StorageToken.instance.getRefreshToken());
       return apiResponse.data!;
     } else {
       throw Exception(apiResponse.message);
@@ -42,37 +46,40 @@ class AuthService {
   }
 
   Future<void> refreshTokens() async {
-  final oldRefreshToken = await StorageToken.instance.getRefreshToken();
-  print("OLD REFRESH = $oldRefreshToken");
+    final oldRefreshToken = await StorageToken.instance.getRefreshToken();
 
-  final request = RefreshTokenRequest(refreshToken: oldRefreshToken!);
+    if (oldRefreshToken == null) {
+      await StorageToken.instance.deleteAll();
+      throw SessionExpiredException();
+    }
 
-  final response = await _api.postRaw("auth/refresh", request.toJson());
+    final request = RefreshTokenRequest(refreshToken: oldRefreshToken);
 
-  print("REFRESH STATUS = ${response.statusCode}");
-  print("REFRESH BODY = ${response.body}");
+    final response = await _api.postRaw("auth/refresh", request.toJson());
 
-  final jsonMap = jsonDecode(response.body);
+    late final dynamic jsonMap;
+    try {
+      jsonMap = jsonDecode(response.body);
+    } catch (_) {
+      await StorageToken.instance.deleteAll();
+      throw SessionExpiredException();
+    }
 
-  final apiResponse = ApiResponse<LoginResponse>.fromJson(
-    jsonMap,
-    (data) => LoginResponse.fromJson(data),
-  );
-
-  print("NEW ACCESS = ${apiResponse.data?.accessToken}");
-
-  if (apiResponse.code == 200) {
-    await StorageToken.instance.saveTokens(
-      apiResponse.data!.accessToken,
-      apiResponse.data!.refreshToken,
+    final apiResponse = ApiResponse<LoginResponse>.fromJson(
+      jsonMap,
+      (data) => LoginResponse.fromJson(data),
     );
 
-    print("AFTER SAVE = ${await StorageToken.instance.getAccessToken()}");
-  } else {
-    print("DELETE TOKEN");
-    await StorageToken.instance.deleteAll();
+    if (apiResponse.code == 200 && apiResponse.data != null) {
+      await StorageToken.instance.saveTokens(
+        apiResponse.data!.accessToken,
+        apiResponse.data!.refreshToken,
+      );
+    } else {
+      await StorageToken.instance.deleteAll();
+      throw SessionExpiredException(apiResponse.message);
+    }
   }
-}
 
   Future<void> forgotPassword(ForgotPasswordRequest request) async {
     final response = await _api.postRaw(
@@ -119,30 +126,31 @@ class AuthService {
     }
   }
 
+
   Future<void> logout() async {
-    final response = await _api.post("auth/logout", {});
+    try {
+      final response = await _api.post("auth/logout", {});
 
-    if (response.body.trim().isEmpty) {
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        await StorageToken.instance.deleteAll();
-        return;
+      if (response.body.trim().isNotEmpty) {
+        try {
+          final jsonMap = jsonDecode(response.body);
+          final apiResponse = ApiResponse.fromJson(
+            jsonMap,
+            (data) => data?.toString() ?? "",
+          );
+          if (apiResponse.code != 200) {
+            // Server không xác nhận logout thành công (token die, v.v.)
+            // -> vẫn tiếp tục xoá token cục bộ ở finally, không throw.
+          }
+        } catch (_) {
+          // Body không parse được -> bỏ qua, vẫn coi như logout cục bộ.
+        }
       }
-      throw Exception(
-        'Server trả về body rỗng với status ${response.statusCode}',
-      );
-    }
-
-    final jsonMap = jsonDecode(response.body);
-
-    final apiResponse = ApiResponse.fromJson(
-      jsonMap,
-      (data) => data?.toString() ?? "",
-    );
-
-    if (apiResponse.code == 200) {
+    } catch (_) {
+      // Mất mạng / SessionExpiredException / bất kỳ lỗi nào từ ApiClient
+      // -> không quan trọng, mục tiêu là luôn dọn session cục bộ.
+    } finally {
       await StorageToken.instance.deleteAll();
-    } else {
-      throw Exception(apiResponse.message);
     }
   }
 }

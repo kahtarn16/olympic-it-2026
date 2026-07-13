@@ -19,7 +19,7 @@ class QuestionOptionResponse {
       label: json["label"],
       contentText: json["contentText"],
       imageUrl: json["imageUrl"],
-      isCorrect: json["isCorrect"] == true,
+      isCorrect: json["isCorrect"],
     );
   }
 }
