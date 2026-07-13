@@ -1,0 +1,14 @@
+{
+  "project": "olympic-it-2026",
+  "platform": "ios",
+  "github": {
+    "owner": "kahtarn16",
+    "repo": "olympic-it-2026"
+  },
+  "ios": {},
+  "flutter": {
+    "watch": {}
+  },
+  "reactNative": {},
+  "mobai": {}
+}
