@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Khóa</title>
+    <link rel="stylesheet" href="../css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>
+                📚 Quản lý Khóa
+            </h2>
+            <a href="admin.html" class="btn btn-secondary">
+                Quay lại
+            </a>
+        </div>
+        <div class="card shadow p-4 mb-4">
+            <h5 class="mb-3">
+                Thêm khóa mới
+            </h5>
+            <div class="input-group">
+                <input type="text" id="academicYearName" class="form-control" placeholder="Nhập tên khóa">
+                <button class="btn btn-primary" id="btnAdd">
+                    Thêm
+                </button>
+            </div>
+        </div>
+        <div class="card shadow">
+            <div class="card-body">
+                <table class="table table-bordered text-center align-middle">
+                    <thead class="table-primary">
+                        <tr>
+                            <th>ID</th>
+                            <th>Tên khóa</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="academicYearTable">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="../js/academic.js"></script>
+
+</body>
+
+</html>

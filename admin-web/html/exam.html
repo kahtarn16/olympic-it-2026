@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Đề thi</title>
+    <link rel="stylesheet" href="../css/bootstrap.min.css">
+</head>
+
+<body>
+
+    <div class="container py-4">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>📝 Quản lý Đề thi</h2>
+            <a href="admin.html" class="btn btn-secondary">Quay lại</a>
+        </div>
+
+        <!-- FORM TẠO / SỬA ĐỀ THI -->
+        <div class="card shadow p-4 mb-4">
+            <h5 class="mb-3" id="formTitle">Thêm đề thi mới</h5>
+
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label fw-bold">Tên đề thi</label>
+                    <input id="examName" type="text" class="form-control" placeholder="Nhập tên đề thi...">
+                </div>
+
+                <div class="col-md-4 d-flex align-items-end">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="shuffleOption">
+                        <label class="form-check-label fw-bold" for="shuffleOption">
+                            Trộn thứ tự câu hỏi
+                        </label>
+                    </div>
+                </div>
+
+                <div class="col-md-12 text-end">
+                    <button type="button" id="btnCancel" class="btn btn-secondary me-2 d-none">Hủy sửa</button>
+                    <button type="button" id="btnSubmit" class="btn btn-primary px-4">Thêm đề thi</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- LỌC / TÌM KIẾM -->
+        <div class="card shadow p-4 mb-4">
+            <h5>🔍 Tìm kiếm đề thi</h5>
+            <div class="row g-2">
+                <div class="col-md-6">
+                    <input id="keywordInput" type="text" class="form-control" placeholder="Nhập tên đề thi cần tìm...">
+                </div>
+                <div class="col-md-2">
+                    <button id="btnSearch" class="btn btn-outline-primary w-100">Tìm</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- BẢNG DANH SÁCH ĐỀ THI -->
+        <div class="card shadow mb-4">
+            <div class="card-body">
+                <table class="table table-bordered align-middle text-center">
+                    <thead class="table-primary">
+                        <tr>
+                            <th style="width: 5%;">ID</th>
+                            <th style="width: 25%;" class="text-start">Tên đề thi</th>
+                            <th style="width: 12%;">Trạng thái</th>
+                            <th style="width: 10%;">Trộn đề</th>
+                            <th style="width: 18%;">Người tạo</th>
+                            <th style="width: 15%;">Ngày tạo</th>
+                            <th style="width: 15%;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="examTable"></tbody>
+                </table>
+
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div class="text-muted small" id="paginationInfo">Hiển thị...</div>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item" id="btnPrev"><button class="page-link">Trước</button></li>
+                            <li class="page-item disabled"><span class="page-link" id="currentPageNum">1</span></li>
+                            <li class="page-item" id="btnNext"><button class="page-link">Sau</button></li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <!-- KHU VỰC QUẢN LÝ CÂU HỎI + THÍ SINH CỦA 1 ĐỀ THI -->
+        <div id="managePanel" class="card shadow p-4 mb-4 d-none">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+
+                <div>
+                    <h5 class="mb-2">
+                        ⚙️ Quản lý đề thi:
+                        <span id="manageExamName" class="text-primary"></span>
+                        <span id="manageExamStatus" class="badge bg-secondary"></span>
+                    </h5>
+
+                    <div id="examActionArea" class="d-flex gap-2 flex-wrap">
+                    </div>
+                </div>
+
+                <button type="button" id="btnCloseManage" class="btn btn-outline-secondary btn-sm">
+                    Đóng
+                </button>
+
+            </div>
+
+            <div class="row g-4">
+
+                <!-- CỘT CÂU HỎI -->
+                <div class="col-md-6 border-end">
+                    <h6 class="fw-bold text-success">📚 Câu hỏi trong đề</h6>
+
+                    <ul id="examQuestionList" class="list-group mb-3"></ul>
+
+                    <div class="input-group">
+                        <select id="questionSelect" class="form-select"></select>
+                        <button id="btnAddQuestion" class="btn btn-success">Thêm</button>
+                    </div>
+                </div>
+
+                <!-- CỘT THÍ SINH -->
+                <div class="col-md-6">
+                    <h6 class="fw-bold text-info">🧑‍🎓 Thí sinh</h6>
+
+                    <ul id="examParticipantList" class="list-group mb-3"></ul>
+
+                    <div class="input-group">
+                        <select id="participantSelect" class="form-select"></select>
+                        <button id="btnAddParticipant" class="btn btn-info text-white">Thêm</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <script type="module" src="../js/exam.js"></script>
+</body>
+
+</html>

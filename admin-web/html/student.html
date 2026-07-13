@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Quản lý Sinh viên</title>
+
+    <link rel="stylesheet" href="../css/bootstrap.min.css">
+</head>
+
+<body>
+
+<div class="container py-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>👨‍🎓 Quản lý Sinh viên</h2>
+
+        <a href="admin.html" class="btn btn-secondary">
+            Quay lại
+        </a>
+    </div>
+
+
+    <div class="card shadow p-4 mb-4">
+
+        <h5 class="mb-3">
+            Thêm / Sửa sinh viên
+        </h5>
+
+        <div class="row g-2">
+
+            <div class="col-md-4">
+                <input id="username"
+                       class="form-control"
+                       placeholder="Tên đăng nhập">
+            </div>
+
+            <div class="col-md-4">
+                <input id="password"
+                       type="password"
+                       class="form-control"
+                       placeholder="Mật khẩu">
+            </div>
+
+            <div class="col-md-4">
+                <input id="email"
+                       class="form-control"
+                       placeholder="Email">
+            </div>
+
+            <div class="col-md-4">
+                <input id="fullName"
+                       class="form-control"
+                       placeholder="Họ tên">
+            </div>
+
+            <div class="col-md-4">
+                <select id="createYear"
+                        class="form-select">
+                    <option value="">
+                        -- Chọn khóa --
+                    </option>
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <select id="createClass"
+                        class="form-select">
+                    <option value="">
+                        -- Chọn lớp --
+                    </option>
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <button id="btnAdd"
+                        class="btn btn-primary w-100">
+                    Thêm sinh viên
+                </button>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="card shadow p-4 mb-4">
+
+        <h5>
+            Lọc sinh viên
+        </h5>
+
+        <div class="row g-2">
+
+            <div class="col-md-6">
+                <select id="academicYear"
+                        class="form-select">
+                    <option value="">
+                        -- Chọn khóa --
+                    </option>
+                </select>
+            </div>
+
+            <div class="col-md-6">
+                <select id="class"
+                        class="form-select">
+                    <option value="">
+                        -- Chọn lớp --
+                    </option>
+                </select>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="card shadow">
+
+        <div class="card-body">
+
+            <table class="table table-bordered text-center">
+
+                <thead class="table-primary">
+
+                <tr>
+                    <th>ID</th>
+                    <th>Tài khoản</th>
+                    <th>Email</th>
+                    <th>Họ tên</th>
+                    <th>Lớp</th>
+                    <th>Thao tác</th>
+                </tr>
+
+                </thead>
+
+
+                <tbody id="studentTable">
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script type="module" src="../js/student.js"></script>
+
+</body>
+
+</html>

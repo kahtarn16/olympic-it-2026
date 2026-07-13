@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Quản lý Danh mục</title>
+
+    <link rel="stylesheet" href="../css/bootstrap.min.css">
+</head>
+
+<body>
+
+    <div class="container py-4">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>📁 Quản lý Danh mục</h2>
+
+            <a href="admin.html" class="btn btn-secondary">
+                Quay lại
+            </a>
+        </div>
+
+        <div class="card shadow p-4 mb-4">
+
+            <h5 class="mb-3">
+                Thêm / Sửa danh mục
+            </h5>
+
+            <div class="row g-2">
+
+                <div class="col-md-8">
+                    <input id="categoryName" class="form-control" placeholder="Tên danh mục">
+                </div>
+
+                <div class="col-md-4">
+                    <button id="btnAdd" class="btn btn-primary w-100">
+                        Thêm danh mục
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="card shadow">
+
+            <div class="card-body">
+
+                <table class="table table-bordered text-center">
+
+                    <thead class="table-primary">
+                        <tr>
+                            <th style="width: 15%;">ID</th>
+                            <th>Tên danh mục</th>
+                            <th style="width: 25%;">Thao tác</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="categoryTable">
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <script type="module" src="../js/category.js"></script>
+
+</body>
+
+</html>

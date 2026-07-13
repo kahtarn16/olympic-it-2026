@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Olympic IT - Dashboard</title>
+
+    <link rel="stylesheet" href="../css/bootstrap.min.css">
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+
+<body>
+
+    <div class="container py-4">
+
+        <!-- Header -->
+        <div class="header mb-5">
+
+            <div class="header-left">
+                <a href="admin.html">
+                    <img src="../js/core/img/logo_caothang.webp" alt="Logo" class="admin-logo">
+                </a>
+            </div>
+
+            <div class="header-center">
+                <h2>Xin chào, Quản trị viên!</h2>
+                <p>Hệ thống quản lý Olympic IT</p>
+            </div>
+
+            <div class="header-right">
+                <button class="btn btn-danger" id="btnLogout">
+                    Đăng xuất
+                </button>
+            </div>
+
+        </div>
+
+        <hr>
+
+        <div class="dashboard-header mb-4">
+            <h3>📋 Công cụ quản lý</h3>
+            <p>Chọn chức năng bạn muốn quản lý.</p>
+        </div>
+
+        <div class="row g-4">
+
+            <div class="col-md-4">
+                <div class="dashboard-card" id="academicYearCard">
+                    <h1>📚</h1>
+                    <h5>Quản lý Khóa</h5>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="dashboard-card" id="classCard">
+                    <h1>🏫</h1>
+                    <h5>Quản lý Lớp</h5>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="dashboard-card" id="studentCard">
+                    <h1>👨‍🎓</h1>
+                    <h5>Quản lý Sinh viên</h5>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="dashboard-card" id="categoryCard">
+                    <h1>🏷️</h1>
+                    <h5>Loại câu hỏi</h5>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="dashboard-card" id="questionCard">
+                    <h1>❓</h1>
+                    <h5>Quản lý Câu hỏi</h5>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="dashboard-card" id="examCard">
+                    <h1>📝</h1>
+                    <h5>Quản lý Đề thi</h5>
+                </div>
+            </div>
+
+            <div class="col-md-4 offset-md-4">
+                <div class="dashboard-card" id="resultCard">
+                    <h1>🏆</h1>
+                    <h5>Kết quả thi</h5>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script src="../js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="../js/admin.js"></script>
+    <script type="module" src="../js/logout.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Câu hỏi</title>
+    <link rel="stylesheet" href="../css/bootstrap.min.css">
+</head>
+
+<body>
+
+    <div class="container py-4">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>❓ Quản lý Câu hỏi</h2>
+            <a href="admin.html" class="btn btn-secondary">Quay lại</a>
+        </div>
+
+        <div class="card shadow p-4 mb-4">
+            <h5 class="mb-3" id="formTitle">Thêm câu hỏi mới</h5>
+
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <label class="form-label fw-bold">Nội dung câu hỏi</label>
+                    <textarea id="content" class="form-control" rows="2"
+                        placeholder="Nhập nội dung câu hỏi..."></textarea>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Danh mục</label>
+                    <select id="categoryId" class="form-select"></select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Loại câu hỏi</label>
+                    <select id="questionType" class="form-select">
+                        <option value="MCQ_TEXT">Trắc nghiệm chữ</option>
+                        <option value="MCQ_MEDIA">Trắc nghiệm hình/video</option>
+                        <option value="ESSAY_TEXT">Tự luận chữ</option>
+                        <option value="ESSAY_MEDIA">Tự luận hình/video</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Độ khó</label>
+                    <select id="level" class="form-select">
+                        <option value="EASY">Dễ</option>
+                        <option value="MEDIUM">Trung bình</option>
+                        <option value="HARD">Khó</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Điểm số</label>
+                    <input id="score" type="number" class="form-control" value="1">
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Thời gian (giây)</label>
+                    <input id="timeLimit" type="number" class="form-control" value="60">
+                </div>
+
+                <div id="mediaSection" class="d-none mb-3">
+                    <label class="form-label fw-bold text-primary">File đa phương tiện câu hỏi</label>
+
+                    <div id="mediaInputsWrapper" class="row g-2">
+                        <div class="col-md-6">
+                            <label class="small text-muted fw-semibold">Chọn hình ảnh</label>
+                            <input type="file" id="imageFile" class="form-control" accept="image/*">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="small text-muted fw-semibold">Chọn video</label>
+                            <input type="file" id="videoFile" class="form-control" accept="video/*">
+                        </div>
+                    </div>
+
+                    <div id="mediaPreviewWrapper" class="mt-2 p-2 border rounded bg-light d-none text-center">
+                        <div id="mediaPreview" class="mb-2 d-flex justify-content-center align-items-center"></div>
+                        <button type="button" id="btnClearMedia" class="btn btn-danger btn-sm">
+                            <i class="bi bi-trash"></i> Xóa file hiện tại và chọn lại
+                        </button>
+                    </div>
+                </div>
+
+                <div id="essaySection" class="col-md-12 d-none">
+                    <label class="form-label fw-bold text-danger">Đáp án / Hướng dẫn tự luận (Bắt buộc)</label>
+                    <textarea id="essayAnswer" class="form-control" rows="3"
+                        placeholder="Nhập đáp án chuẩn hoặc hướng dẫn chấm tự luận..."></textarea>
+                </div>
+
+                <div id="mcqSection" class="col-md-12">
+                    <div class="card p-3 border-secondary">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <label class="form-label fw-bold text-success mb-0">Cấu hình 4 lựa chọn trắc nghiệm</label>
+                            <div>
+                                <span class="me-2 small fw-medium">Định dạng đáp án:</span>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <input type="radio" class="btn-check" name="optType" id="optTypeText" checked>
+                                    <label class="btn btn-outline-success" for="optTypeText">Toàn bộ Chữ</label>
+                                    <input type="radio" class="btn-check" name="optType" id="optTypeImage">
+                                    <label class="btn btn-outline-success" for="optTypeImage">Toàn bộ Ảnh</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="mcqOptionsWrapper" class="row g-3">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 ms-auto text-end">
+                    <button type="button" id="btnCancel" class="btn btn-secondary me-2 d-none">Hủy sửa</button>
+                    <button type="button" id="btnSubmit" class="btn btn-primary px-4">Thêm câu hỏi</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow p-4 mb-4">
+            <h5>🔍 Lọc câu hỏi</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <select id="filterCategory" class="form-select">
+                        <option value="">-- Tất cả danh mục --</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow">
+            <div class="card-body">
+                <table class="table table-bordered align-middle text-center">
+                    <thead class="table-primary">
+                        <tr>
+                            <th style="width: 5%;">ID</th>
+                            <th style="width: 45%;" class="text-start">Nội dung câu hỏi</th>
+                            <th style="width: 15%;">Loại</th>
+                            <th style="width: 15%;">Danh mục</th>
+                            <th style="width: 10%;">Độ khó</th>
+                            <th style="width: 10%;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="questionTable"></tbody>
+                </table>
+
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div class="text-muted small" id="paginationInfo">Hiển thị...</div>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item" id="btnPrev"><button class="page-link">Trước</button></li>
+                            <li class="page-item disabled"><span class="page-link" id="currentPageNum">1</span></li>
+                            <li class="page-item" id="btnNext"><button class="page-link">Sau</button></li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="../js/question.js"></script>
+</body>
+
+</html>
