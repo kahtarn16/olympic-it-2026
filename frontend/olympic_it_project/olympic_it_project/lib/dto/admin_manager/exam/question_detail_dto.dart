@@ -39,6 +39,20 @@ class QuestionDetailDto {
           .toList(),
     );
   }
+  Map<String, dynamic> toJson() {
+    return {
+      "id": id,
+      "content": content,
+      "type": type,
+      "level": level,
+      "score": score,
+      "imageUrl": imageUrl,
+      "videoUrl": videoUrl,
+      "timeLimit": timeLimit,
+      "category": category,
+      "options": options.map((e) => e.toJson()).toList(), // Tự động convert list options con
+    };
+  }
 }
 
 class QuestionOptionDto {
@@ -61,5 +75,14 @@ class QuestionOptionDto {
       contentText: json["contentText"] ?? "",
       imageUrl: json["imageUrl"],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "id": id,
+      "label": label,
+      "contentText": contentText,
+      "imageUrl": imageUrl,
+    };
   }
 }

@@ -15,15 +15,23 @@ dependencies:
   image_picker: ^1.1.2
   file_picker: ^10.3.2
   cached_network_image: ^3.4.1
-  flutter_screenguard: 2.0.0
+  flutter_screenguard: ^2.0.1
   stomp_dart_client: ^2.0.0
   phone_state: ^3.0.0
   permission_handler: ^11.3.1
+  video_player: ^2.8.2  # Hoặc phiên bản mới nhất
+  chewie: ^1.8.1        # Trình quản lý controller cho video_player cực tiện lợi
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/app_logo.png"
+  min_sdk_android: 21
 
 flutter:
   uses-material-design: true

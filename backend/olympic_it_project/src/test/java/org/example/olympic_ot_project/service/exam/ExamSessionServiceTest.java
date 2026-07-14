@@ -53,6 +53,6 @@ class ExamSessionServiceTest {
         examSessionService.startExam(10);
 
         verify(examSessionRepository).save(any(ExamSession.class));
-        verify(messagingTemplate).convertAndSend(eq("/topic/exam/10"), any());
+        verify(messagingTemplate).convertAndSend(eq("/topic/exam/10"), any(Object.class));
     }
 }

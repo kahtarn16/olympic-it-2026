@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Olympic It Project</string>
+	<string>Olympic Tin Học 2026</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>olympic_it_project</string>
+	<string>OlympicTinHoc2026</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -66,5 +66,24 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <true/>
+    </dict>
+	<!-- Quyền truy cập trạng thái mạng & cuộc gọi (nếu thư viện yêu cầu) -->
+    <key>NSPhoneUsageDescription</key>
+    <string>Ứng dụng cần quyền này để phát hiện cuộc gọi đến nhằm đảm bảo tính công bằng trong quá trình làm bài thi.</string>
+
+    <!-- Quyền bảo mật chống quay/chụp màn hình (nếu có lưu ảnh/file) -->
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>Ứng dụng cần quyền lưu trữ để lưu kết quả thi của bạn.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Ứng dụng cần truy cập thư viện ảnh để hiển thị ảnh minh họa đề bài thi.</string>
+	<key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <true/>
+    </dict>
 </dict>
 </plist>

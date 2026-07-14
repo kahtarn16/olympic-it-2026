@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenguard/flutter_screenguard.dart';
 import 'package:olympic_it_project/core/api_exception.dart';
+import 'package:olympic_it_project/screen/student_exam/inline_exam_video_player.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:phone_state/phone_state.dart';
 import 'package:olympic_it_project/core/api_client.dart';
@@ -15,6 +17,7 @@ import 'package:olympic_it_project/service/exam_service.dart';
 import 'package:olympic_it_project/service/exam_stomp_service.dart';
 import 'package:olympic_it_project/service/profile_student_service.dart';
 import 'package:olympic_it_project/dto/profile/student_exam_result_response.dart';
+import 'package:video_player/video_player.dart';
 
 class StudentExamScreen extends StatefulWidget {
   final int examId;
@@ -136,6 +139,14 @@ class _StudentExamScreenState extends State<StudentExamScreen>
   }
 
   String? _fullImageUrl(String? path) {
+    if (path == null || path.trim().isEmpty) return null;
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+    return '${ApiClient.host}$path';
+  }
+
+  String? _videoUrl(String? path) {
     if (path == null || path.trim().isEmpty) return null;
     if (path.startsWith('http://') || path.startsWith('https://')) {
       return path;
@@ -1135,8 +1146,8 @@ class _StudentExamScreenState extends State<StudentExamScreen>
   Widget _networkImage(
     String? rawUrl, {
     double? height,
-    double width = double.infinity,
-    BoxFit fit = BoxFit.cover,
+    double? width ,
+    BoxFit fit = BoxFit.contain,
   }) {
     final url = _fullImageUrl(rawUrl);
     if (url == null) return const SizedBox.shrink();
@@ -1149,6 +1160,15 @@ class _StudentExamScreenState extends State<StudentExamScreen>
         height: height,
         width: width,
         fit: fit,
+        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+        if (wasSynchronouslyLoaded) return child;
+        return AnimatedOpacity(
+          opacity: frame == null ? 0 : 1,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+          child: child,
+        );
+      },
         loadingBuilder: (context, child, progress) {
           if (progress == null) return child;
           return Container(
@@ -1184,9 +1204,20 @@ class _StudentExamScreenState extends State<StudentExamScreen>
     if (question == null) {
       return const Center(child: CircularProgressIndicator());
     }
+    
+    debugPrint("=== JSON THÔ NHẬN TỪ SERVER ===");
+    try {
+      // In ra dữ liệu thô nhận từ API/Socket
+      debugPrint(jsonEncode(question));
+    } catch (e) {
+      debugPrint("Không parse được JSON thô: $e");
+    }
+    debugPrint("===============================");
 
     final hasQuestionImage =
         question!.imageUrl != null && question!.imageUrl!.trim().isNotEmpty;
+    final hasQuestionVideo =
+        question!.videoUrl != null && question!.videoUrl!.trim().isNotEmpty;
 
     return SingleChildScrollView(
       child: Column(
@@ -1215,12 +1246,30 @@ class _StudentExamScreenState extends State<StudentExamScreen>
               ),
             ),
           ),
+          if (hasQuestionVideo) ...[
+            const SizedBox(height: 12),
+            // Widget phát video chính thức cho đề bài
+            InlineExamVideoPlayer(
+              videoUrl: _videoUrl(question!.videoUrl)!,
+            ),
+            const SizedBox(height: 12),
+          ],
 
           if (hasQuestionImage) ...[
             const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: _networkImage(question!.imageUrl, height: 180),
+            Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  constraints: const BoxConstraints(
+                    maxHeight: 220, // Giới hạn chiều cao tối đa của ảnh đề thi để không chiếm hết màn hình
+                  ),
+                  child: _networkImage(
+                    question!.imageUrl,
+                    fit: BoxFit.contain, // Đảm bảo ảnh tự scale nhỏ lại vừa khít, không bị mất góc
+                  ),
+                ),
+              ),
             ),
           ],
 
@@ -1410,7 +1459,7 @@ class _StudentExamScreenState extends State<StudentExamScreen>
         ),
       );
     }
-
+    final hasQuestionVideo = question!.videoUrl != null && question!.videoUrl!.trim().isNotEmpty;
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1431,6 +1480,12 @@ class _StudentExamScreenState extends State<StudentExamScreen>
               ),
             ),
           ),
+          if (hasQuestionVideo) ...[
+            const SizedBox(height: 12),
+            InlineExamVideoPlayer(
+              videoUrl: _videoUrl(question!.videoUrl)!,
+            ),
+          ],
           const SizedBox(height: 16),
 
           if (_isMcq)

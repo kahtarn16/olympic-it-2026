@@ -585,6 +585,7 @@ public class ExamSessionService {
                 .id(q.getId())
                 .content(q.getContent())
                 .imageUrl(q.getImageUrl())
+                .videoUrl(q.getVideoUrl())
                 .type(q.getType())
                 .level(q.getLevel())
                 .score(q.getScore())
