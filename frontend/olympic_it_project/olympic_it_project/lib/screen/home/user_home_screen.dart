@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:olympic_it_project/screen/student_exam/exam_details_student_screen.dart';
 import 'package:olympic_it_project/screen/auth/login_screen.dart';
+import 'package:olympic_it_project/screen/student_exam/profile_student_screen.dart';
 import 'package:olympic_it_project/service/auth_service.dart';
 import 'package:olympic_it_project/service/profile_student_service.dart';
 
@@ -72,7 +73,9 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   void openExam(int examId) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => ExamDetailsStudentScreen(examId: examId)),
+      MaterialPageRoute(
+        builder: (_) => ExamDetailsStudentScreen(examId: examId),
+      ),
     );
   }
 
@@ -102,12 +105,6 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           "Olympic IT",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        actions: [
-          IconButton(
-            onPressed: logout,
-            icon: const Icon(Icons.logout, color: Colors.white),
-          ),
-        ],
       ),
       body: loading
           ? const Center(child: CircularProgressIndicator(color: Colors.white))
@@ -147,58 +144,68 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
 
                     const SizedBox(height: 20),
 
-                    // ===== USER CARD (GIỐNG ADMIN) =====
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(.1),
-                            blurRadius: 18,
-                            offset: const Offset(0, 8),
+                    GestureDetector(
+                      onTap: () {
+                        // Chuyển sang trang Profile. Nhớ thay 'ProfilePage()' bằng class trang của bạn nhé.
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ProfileStudentScreen(),
                           ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          const CircleAvatar(
-                            radius: 30,
-                            backgroundColor: Color(0xFFE8F1FF),
-                            child: Icon(
-                              Icons.person,
-                              color: Color(0xFF3B82F6),
-                              size: 30,
+                        );
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(.1),
+                              blurRadius: 18,
+                              offset: const Offset(0, 8),
                             ),
-                          ),
-                          const SizedBox(width: 15),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  "Xin chào 👋",
-                                  style: TextStyle(color: Colors.grey),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  user?['fullName'] ?? "Sinh viên",
-                                  style: const TextStyle(
-                                    fontSize: 19,
-                                    fontWeight: FontWeight.bold,
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            const CircleAvatar(
+                              radius: 30,
+                              backgroundColor: Color(0xFFE8F1FF),
+                              child: Icon(
+                                Icons.person,
+                                color: Color(0xFF3B82F6),
+                                size: 30,
+                              ),
+                            ),
+                            const SizedBox(width: 15),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    "Xin chào 👋",
+                                    style: TextStyle(color: Colors.grey),
                                   ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  user?['email'] ?? "",
-                                  style: const TextStyle(color: Colors.grey),
-                                ),
-                              ],
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    user?['fullName'] ?? "Sinh viên",
+                                    style: const TextStyle(
+                                      fontSize: 19,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    user?['email'] ?? "",
+                                    style: const TextStyle(color: Colors.grey),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
 
