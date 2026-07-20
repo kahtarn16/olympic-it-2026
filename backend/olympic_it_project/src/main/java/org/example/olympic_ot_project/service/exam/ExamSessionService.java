@@ -2,18 +2,18 @@ package org.example.olympic_ot_project.service.exam;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.olympic_ot_project.core.AccountStudentStatus;
 import org.example.olympic_ot_project.core.ExamState;
 import org.example.olympic_ot_project.core.ExamStatus;
 import org.example.olympic_ot_project.core.ParticipantStatus;
+import org.example.olympic_ot_project.core.QuestionType;
 import org.example.olympic_ot_project.dto.exam.*;
 import org.example.olympic_ot_project.dto.exam.websocket.*;
 import org.example.olympic_ot_project.enity.*;
 import org.example.olympic_ot_project.exception.AppException;
 import org.example.olympic_ot_project.exception.ErrorCode;
 import org.example.olympic_ot_project.repositoy.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.TaskScheduler;
@@ -29,13 +29,16 @@ import java.util.concurrent.ScheduledFuture;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ExamSessionService {
 
     private static final int PREVIEW_DURATION_SECONDS = 5;
     private static final int DEFAULT_QUESTION_TIME_LIMIT = 30;
+
 
     private final Map<Integer, ScheduledFuture<?>> tasks = new ConcurrentHashMap<>();
 
@@ -52,10 +55,6 @@ public class ExamSessionService {
     private final TaskScheduler taskScheduler;
     private final UsersRepository usersRepository;
 
-    @Autowired
-    @Lazy
-    private ExamSessionService self;
-
     @PostConstruct
     public void resumePendingSessions() {
         List<ExamSession> activeSessions = examSessionRepository
@@ -70,15 +69,32 @@ public class ExamSessionService {
 
             if (remain <= 0) {
                 if (session.getState() == ExamState.PREVIEW) {
-                    self.runQuestion(examId, session.getCurrentQuestionIndex());
+                    this.runQuestion(examId, session.getCurrentQuestionIndex());
                 } else {
-                    self.runAnswer(examId, session.getCurrentQuestionIndex());
+                    this.runAnswer(examId, session.getCurrentQuestionIndex());
                 }
             } else {
                 Runnable next = session.getState() == ExamState.PREVIEW
-                        ? () -> self.runQuestion(examId, session.getCurrentQuestionIndex())
-                        : () -> self.runAnswer(examId, session.getCurrentQuestionIndex());
+                        ? () -> this.runQuestion(examId, session.getCurrentQuestionIndex())
+                        : () -> this.runAnswer(examId, session.getCurrentQuestionIndex());
                 schedule(examId, next, (int) remain);
+            }
+        }
+
+        // Phục hồi lịch hẹn tự động sau khi server restart
+        List<Exam> scheduledExams = examRepository
+                .findByScheduledStartAtIsNotNullAndStatus(ExamStatus.WAITING);
+
+        log.info("Phục hồi {} lịch hẹn tự động sau khi khởi động server", scheduledExams.size());
+
+        for (Exam exam : scheduledExams) {
+            LocalDateTime startAt = exam.getScheduledStartAt();
+            if (startAt.isBefore(LocalDateTime.now())) {
+                log.info("Lịch hẹn examId={} đã quá giờ, chạy ngay", exam.getId());
+                this.autoCreateRoomAndStart(exam.getId());
+            } else {
+                log.info("Lên lịch lại examId={} vào lúc {}", exam.getId(), startAt);
+                scheduleAutoStartTask(exam.getId(), startAt);
             }
         }
     }
@@ -87,6 +103,17 @@ public class ExamSessionService {
     @Transactional
     @PreAuthorize("hasRole('ADMIN')")
     public void startExam(Integer examId) {
+        // Admin bấm nút "Bắt đầu thi" trực tiếp => KHÔNG tự động chuyển câu,
+        // admin phải tự bấm "câu tiếp theo" (adminNextQuestion) sau mỗi câu.
+        startExamInternal(examId, false);
+    }
+
+    /**
+     * Hàm xử lý logic bắt đầu thi dùng chung cho cả 2 luồng:
+     * - autoMode = false: admin bấm tay (startExam)
+     * - autoMode = true: hệ thống tự động chạy theo lịch hẹn (autoStartExam)
+     */
+    private void startExamInternal(Integer examId, boolean autoMode) {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
 
@@ -105,9 +132,10 @@ public class ExamSessionService {
         examRepository.save(exam);
 
         session.setCurrentQuestionIndex(0);
+        session.setAutoMode(autoMode);
         examSessionRepository.save(session);
 
-        self.runPreview(examId, 0);
+        this.runPreview(examId, 0);
     }
 
     @Transactional
@@ -117,7 +145,7 @@ public class ExamSessionService {
         List<ExamQuestion> questions = getQuestions(examId);
 
         if (index >= questions.size()) {
-            self.finishExam(examId, session, questions.size());
+            this.finishExam(examId, session, questions.size());
             return;
         }
 
@@ -144,7 +172,7 @@ public class ExamSessionService {
 
         messagingTemplate.convertAndSend("/topic/exam/" + examId, payload);
 
-        schedule(examId, () -> self.runQuestion(examId, index), PREVIEW_DURATION_SECONDS);
+        schedule(examId, () -> this.runQuestion(examId, index), PREVIEW_DURATION_SECONDS);
     }
 
     @Transactional
@@ -154,7 +182,7 @@ public class ExamSessionService {
         List<ExamQuestion> questions = getQuestions(examId);
 
         if (index >= questions.size()) {
-            self.finishExam(examId, session, questions.size());
+            this.finishExam(examId, session, questions.size());
             return;
         }
 
@@ -179,7 +207,7 @@ public class ExamSessionService {
 
         messagingTemplate.convertAndSend("/topic/exam/" + examId, payload);
 
-        schedule(examId, () -> self.runAnswer(examId, index), timeLimit);
+        schedule(examId, () -> this.runAnswer(examId, index), timeLimit);
     }
 
     @Transactional
@@ -206,8 +234,51 @@ public class ExamSessionService {
         payload.put("index", index);
         payload.put("correctOptionId", correct);
         payload.put("sampleAnswer", q.getAnswer() == null ? "" : q.getAnswer());
+        payload.put("seatResults", buildSeatResults(examId, index));
 
         messagingTemplate.convertAndSend("/topic/exam/" + examId, payload);
+
+        // Chỉ tự động chuyển sang câu tiếp theo (sau 3 giây) khi exam đang chạy
+        // theo lịch hẹn tự động. Nếu admin điều khiển trực tiếp (autoMode = false)
+        // thì dừng lại ở đây, chờ admin tự bấm "câu tiếp theo" (adminNextQuestion).
+        if (Boolean.TRUE.equals(session.getAutoMode())) {
+            schedule(examId, () -> this.autoNextQuestion(examId), 3);
+        }
+    }
+
+    /**
+     * Build danh sách trạng thái đúng/sai của từng thí sinh theo số ghế, dùng cho
+     * trang trình chiếu (presentation) tô màu xanh/đỏ sơ đồ chỗ ngồi lúc SHOW_ANSWER.
+     * Chỉ những thí sinh đã được gán seatNumber mới xuất hiện trong danh sách này.
+     */
+    private List<Map<String, Object>> buildSeatResults(Integer examId, int questionIndex) {
+
+        List<ExamParticipant> participants = examParticipantRepository.findByExamId(examId);
+
+        List<ExamParticipantProgress> progresses =
+                progressRepository.findByExamIdAndQuestionIndex(examId, questionIndex);
+
+        Map<Integer, Boolean> correctByUserId = progresses.stream()
+                .collect(Collectors.toMap(
+                        p -> p.getUser().getId(),
+                        ExamParticipantProgress::getIsCorrect
+                ));
+
+        return participants.stream()
+                .filter(p -> p.getSeatNumber() != null)
+                .map(p -> {
+                    Map<String, Object> m = new HashMap<>();
+                    Integer userId = p.getUser().getId();
+                    boolean answered = correctByUserId.containsKey(userId);
+
+                    m.put("userId", userId);
+                    m.put("seatNumber", p.getSeatNumber());
+                    m.put("fullName", p.getUser().getFullName());
+                    m.put("answered", answered);
+                    m.put("isCorrect", answered ? correctByUserId.get(userId) : null);
+                    return m;
+                })
+                .toList();
     }
 
     private String normalizeAnswer(String text) {
@@ -476,9 +547,22 @@ public class ExamSessionService {
         submittedPayload.put("type", "ANSWER_SUBMITTED");
         submittedPayload.put("userId", participant.getUser().getId());
         submittedPayload.put("fullName", participant.getUser().getFullName());
+        submittedPayload.put("seatNumber", participant.getSeatNumber());
         submittedPayload.put("questionIndex", index);
 
         messagingTemplate.convertAndSend("/topic/exam/" + examId, submittedPayload);
+
+        Map<String, Object> adminPayload = new HashMap<>();
+        adminPayload.put("userId", participant.getUser().getId());
+        adminPayload.put("fullName", participant.getUser().getFullName());
+        adminPayload.put("seatNumber", participant.getSeatNumber());
+        adminPayload.put("questionIndex", index);
+        adminPayload.put("selectedOptionId", progress.getSelectedOptionId());
+        adminPayload.put("answerText", progress.getAnswerText());
+        adminPayload.put("isCorrect", correct);
+        adminPayload.put("answeredAt", progress.getAnsweredAt());
+
+        messagingTemplate.convertAndSend("/topic/exam/" + examId + "/admin-submissions", adminPayload);
 
         return SubmitAnswerResponse.builder()
                 .questionIndex(index)
@@ -487,6 +571,84 @@ public class ExamSessionService {
                         participant.getScore()
                 )
                 .build();
+    }
+
+    /**
+     * Admin sửa lại kết quả đúng/sai cho các bài nộp CÂU TỰ LUẬN trong lúc đang
+     * ở màn SHOW_ANSWER (do so sánh chuỗi tự động có thể chấm sai, vd đáp án mẫu
+     * là "Thành phố Hồ Chí Minh" nhưng thí sinh chỉ ghi "Hồ Chí Minh").
+     * Chỉ áp dụng được cho câu hỏi đang hiển thị đáp án (SHOW_ANSWER) của đúng
+     * câu đó — khi admin bấm "câu tiếp theo", state đổi sang câu khác thì sẽ
+     * không sửa được câu cũ nữa.
+     */
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
+    public void adminRegradeAnswers(Integer examId, AdminRegradeRequest request) {
+
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_STATE);
+        }
+
+        Integer questionIndex = request.getQuestionIndex();
+        List<ExamQuestion> questions = getQuestions(examId);
+
+        if (questionIndex == null || questionIndex < 0 || questionIndex >= questions.size()) {
+            throw new AppException(ErrorCode.QUESTION_NOT_FOUND);
+        }
+
+        ExamSession session = getRequiredSession(examId);
+
+        // Chỉ cho sửa khi đang đứng ở màn SHOW_ANSWER của đúng câu đang xét
+        if (session.getState() != ExamState.SHOW_ANSWER
+                || !Objects.equals(session.getCurrentQuestionIndex(), questionIndex)) {
+            throw new AppException(ErrorCode.INVALID_STATE);
+        }
+
+        Question question = getQuestion(questions, questionIndex);
+
+        if (question.getType() != QuestionType.ESSAY_TEXT
+                && question.getType() != QuestionType.ESSAY_MEDIA) {
+            throw new AppException(ErrorCode.INVALID_QUESTION_TYPE);
+        }
+
+        for (AdminRegradeRequest.Item item : request.getItems()) {
+
+            ExamParticipantProgress progress = progressRepository
+                    .findByExamIdAndUserIdAndQuestionIndex(examId, item.getUserId(), questionIndex)
+                    .orElse(null);
+
+            if (progress == null || progress.getAnsweredAt() == null) {
+                log.warn("Bỏ qua regrade: examId={}, userId={}, questionIndex={} chưa nộp bài",
+                        examId, item.getUserId(), questionIndex);
+                continue;
+            }
+
+            boolean oldCorrect = Boolean.TRUE.equals(progress.getIsCorrect());
+            boolean newCorrect = Boolean.TRUE.equals(item.getIsCorrect());
+
+            if (oldCorrect == newCorrect) {
+                continue;
+            }
+
+            progress.setIsCorrect(newCorrect);
+            progressRepository.save(progress);
+
+            ExamParticipant participant = examParticipantRepository
+                    .findByExamIdAndUserId(examId, item.getUserId())
+                    .orElseThrow(() -> new AppException(ErrorCode.PARTICIPANT_NOT_FOUND));
+
+            int delta = newCorrect ? question.getScore() : -question.getScore();
+            participant.setScore(participant.getScore() + delta);
+            examParticipantRepository.save(participant);
+        }
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("type", "REGRADE");
+        payload.put("questionIndex", questionIndex);
+        payload.put("seatResults", buildSeatResults(examId, questionIndex));
+        payload.put("leaderboard", buildLeaderboard(examId));
+
+        messagingTemplate.convertAndSend("/topic/exam/" + examId, payload);
     }
 
     @Transactional
@@ -500,8 +662,11 @@ public class ExamSessionService {
         if (participant.getStatus() != ParticipantStatus.BANNED) {
             throw new AppException(ErrorCode.INVALID_STATE);
         }
+
         participant.setStatus(ParticipantStatus.INVITED);
         examParticipantRepository.save(participant);
+
+        antiCheatLogRepository.deleteByExamIdAndUserId(examId, userId);
 
         broadcastRoomUpdate(examId);
     }
@@ -651,11 +816,11 @@ public class ExamSessionService {
         int nextIndex = currentIndex + 1;
 
         if (nextIndex >= questions.size()) {
-            self.finishExam(examId, session, questions.size());
+            this.finishExam(examId, session, questions.size());
             return;
         }
 
-        self.runPreview(examId, nextIndex);
+        this.runPreview(examId, nextIndex);
     }
 
     @Transactional(readOnly = true)
@@ -707,9 +872,25 @@ public class ExamSessionService {
                 .build();
     }
 
+    private void validateExamReadyToStart(Integer examId) {
+        List<ExamQuestion> questions = getQuestions(examId);
+        if (questions.isEmpty()) {
+            throw new AppException(ErrorCode.EXAM_NO_QUESTIONS);
+        }
+
+        List<ExamParticipant> participants = examParticipantRepository.findByExamId(examId);
+        if (participants.isEmpty()) {
+            throw new AppException(ErrorCode.EXAM_NO_PARTICIPANTS);
+        }
+    }
+
     @Transactional
     @PreAuthorize("hasRole('ADMIN')")
     public void createRoom(Integer examId) {
+        createRoomInternal(examId);
+    }
+
+    private void createRoomInternal(Integer examId) {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
 
@@ -718,6 +899,8 @@ public class ExamSessionService {
         if (session.getState() != ExamState.WAITING) {
             throw new AppException(ErrorCode.INVALID_STATE);
         }
+
+        validateExamReadyToStart(examId);
 
         exam.setStatus(ExamStatus.ROOM_READY);
         examRepository.save(exam);
@@ -728,7 +911,7 @@ public class ExamSessionService {
         session.setCurrentQuestionEndAt(null);
         session.setQuestionDuration(null);
         session.setLocked(false);
-
+        session.setAutoMode(null);
 
         examSessionRepository.save(session);
 
@@ -829,6 +1012,7 @@ public class ExamSessionService {
         session.setCurrentQuestionEndAt(null);
         session.setQuestionDuration(null);
         session.setLocked(false);
+        session.setAutoMode(null);
 
         examSessionRepository.save(session);
 
@@ -842,13 +1026,6 @@ public class ExamSessionService {
         examParticipantRepository.saveAll(participants);
 
         antiCheatLogRepository.deleteByExamId(examId);
-        List<Users> bannedUsers = participants.stream()
-                .map(ExamParticipant::getUser)
-                .filter(u -> u.getStatus() == AccountStudentStatus.LOCKED)
-                .toList();
-        bannedUsers.forEach(u -> u.setStatus(AccountStudentStatus.ACTIVE));
-        usersRepository.saveAll(bannedUsers);
-        examParticipantRepository.saveAll(participants);
 
         progressRepository.deleteByExamId(examId);
 
@@ -857,6 +1034,7 @@ public class ExamSessionService {
 
         messagingTemplate.convertAndSend("/topic/exam/" + examId, payload);
     }
+
 
     @Transactional(readOnly = true)
     public void broadcastRoomUpdate(Integer examId) {
@@ -871,6 +1049,7 @@ public class ExamSessionService {
                                 .userId(p.getUser().getId())
                                 .fullName(p.getUser().getFullName())
                                 .className(p.getUser().getClasses().getClassName() == null ? "" : p.getUser().getClasses().getClassName())
+                                .seatNumber(p.getSeatNumber())
                                 .build())
                         .toList();
 
@@ -882,5 +1061,152 @@ public class ExamSessionService {
         payload.put("participants", participants);
 
         messagingTemplate.convertAndSend("/topic/exam/" + examId, payload);
+    }
+
+
+
+
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
+    public void scheduleAutoStart(Integer examId, LocalDateTime startAt) {
+
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
+
+        if (exam.getStatus() != ExamStatus.WAITING) {
+            throw new AppException(ErrorCode.INVALID_STATE);
+        }
+
+        if (startAt.isBefore(LocalDateTime.now())) {
+            throw new AppException(ErrorCode.INVALID_STATE);
+        }
+
+        validateExamReadyToStart(examId);
+
+        exam.setScheduledStartAt(startAt);
+        examRepository.save(exam);
+
+        log.info("Đã đặt lịch tự động cho examId={} vào lúc {}", examId, startAt);
+
+        scheduleAutoStartTask(examId, startAt);
+    }
+
+    private void scheduleAutoStartTask(Integer examId, LocalDateTime startAt) {
+        cancelTask(examId);
+
+        Date fireAt = Date.from(startAt.atZone(java.time.ZoneId.systemDefault()).toInstant());
+
+        log.info("Lên lịch task cho examId={}, sẽ bắn lúc {} (server time now: {})",
+                examId, fireAt, new Date());
+
+        // Dùng this thay vì self hoặc ApplicationContext
+        tasks.put(examId,
+                taskScheduler.schedule(() -> this.autoCreateRoomAndStart(examId), fireAt));
+    }
+
+    @Transactional
+    public void autoCreateRoomAndStart(Integer examId) {
+
+        log.info("[AUTO] Bắt đầu tự động tạo phòng cho examId={}", examId);
+
+        Exam exam = examRepository.findById(examId).orElse(null);
+
+        if (exam == null) {
+            log.warn("[AUTO] examId={} không tồn tại, bỏ qua", examId);
+            return;
+        }
+
+        if (exam.getStatus() != ExamStatus.WAITING) {
+            log.warn("[AUTO] examId={} không còn ở trạng thái WAITING (đang là {}), bỏ qua",
+                    examId, exam.getStatus());
+            return;
+        }
+
+        // Validate TRƯỚC khi gọi, tránh để exception ném ra làm mark rollbackOnly
+        List<ExamQuestion> questions = getQuestions(examId);
+        List<ExamParticipant> participants = examParticipantRepository.findByExamId(examId);
+
+        if (questions.isEmpty() || participants.isEmpty()) {
+            log.warn("[AUTO] examId={} không đủ điều kiện tạo phòng (câu hỏi={}, thí sinh={}), hủy lịch hẹn",
+                    examId, questions.size(), participants.size());
+            exam.setScheduledStartAt(null);
+            examRepository.save(exam);
+            return;
+        }
+
+        exam.setScheduledStartAt(null);
+        examRepository.save(exam);
+
+        // Gọi method internal trực tiếp, không qua proxy
+        createRoomInternal(examId);
+        log.info("[AUTO] Đã tạo phòng thành công cho examId={}, sẽ tự start sau 30s", examId);
+        schedule(examId, () -> this.autoStartExam(examId), 30);
+    }
+
+    @Transactional
+    public void autoStartExam(Integer examId) {
+
+        log.info("[AUTO] Kiểm tra để tự động bắt đầu thi examId={}", examId);
+
+        ExamSession session = examSessionRepository.findByExamId(examId).orElse(null);
+
+        if (session == null) {
+            log.warn("[AUTO] examId={} không có session, bỏ qua", examId);
+            return;
+        }
+
+        if (session.getState() != ExamState.ROOM_READY) {
+            log.warn("[AUTO] examId={} không còn ở ROOM_READY (đang là {}), bỏ qua",
+                    examId, session.getState());
+            return;
+        }
+
+        try {
+            // Chạy tự động theo lịch hẹn => autoMode = true, sẽ tự chuyển câu sau mỗi lần show đáp án
+            this.startExamInternal(examId, true);
+            log.info("[AUTO] Đã tự động bắt đầu thi examId={}", examId);
+        } catch (Exception e) {
+            log.error("[AUTO] Lỗi khi tự động bắt đầu thi examId={}: {}", examId, e.getMessage(), e);
+        }
+    }
+
+    @Transactional
+    public void autoNextQuestion(Integer examId) {
+        log.info("[AUTO] Tự động chuyển sang câu hỏi tiếp theo examId={}", examId);
+
+        ExamSession session = examSessionRepository.findByExamId(examId).orElse(null);
+
+        if (session == null) {
+            log.warn("[AUTO] examId={} không có session, bỏ qua", examId);
+            return;
+        }
+
+        if (session.getState() != ExamState.SHOW_ANSWER) {
+            log.warn("[AUTO] examId={} không ở SHOW_ANSWER (đang là {}), bỏ qua",
+                    examId, session.getState());
+            return;
+        }
+
+        try {
+            this.adminNextQuestion(examId);
+            log.info("[AUTO] Đã chuyển sang câu hỏi tiếp theo examId={}", examId);
+        } catch (Exception e) {
+            log.error("[AUTO] Lỗi khi chuyển sang câu hỏi tiếp theo examId={}: {}", examId, e.getMessage(), e);
+        }
+    }
+
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
+    public void cancelAutoStart(Integer examId) {
+
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new AppException(ErrorCode.EXAM_NOT_FOUND));
+
+        exam.setScheduledStartAt(null);
+        examRepository.save(exam);
+
+        cancelTask(examId);
+
+        log.info("Đã hủy lịch hẹn tự động cho examId={}", examId);
     }
 }

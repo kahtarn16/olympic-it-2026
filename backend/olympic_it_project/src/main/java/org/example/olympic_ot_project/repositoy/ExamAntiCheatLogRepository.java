@@ -21,4 +21,6 @@ public interface ExamAntiCheatLogRepository
     Integer countByExamIdAndUserId(Integer examId, Integer userId);
 
     void deleteByExamId(Integer examId);
+
+    void deleteByExamIdAndUserId(Integer examId, Integer userId);
 }

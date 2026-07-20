@@ -127,7 +127,12 @@ public class AuthService {
         );
 
         UserDetails userDetails = customUserDetailsService.loadUserByUsername(user.getUsername());
-        String accessToken = jwtService.genericToken(userDetails);
+
+        String jti = java.util.UUID.randomUUID().toString();
+        String accessToken = jwtService.genericToken(userDetails, jti, user.getId());
+
+        // Ghi đè phiên đang active -> token ở thiết bị khác sẽ bị filter chặn ở request kế tiếp
+        redisTemplate.opsForValue().set("active_session:" + user.getId(), jti);
 
         String refreshTokenValue = java.util.UUID.randomUUID().toString();
 
@@ -146,7 +151,6 @@ public class AuthService {
     }
 
     public void logout(String token) {
-
         Claims claims = jwtService.extractAllClaims(token);
         String username = claims.getSubject();
 
@@ -156,34 +160,20 @@ public class AuthService {
         refreshTokenRepository.findByUser(user)
                 .ifPresent(refreshTokenRepository::delete);
 
+        redisTemplate.delete("active_session:" + user.getId());
+
         Date expiration = claims.getExpiration();
         long ttl = expiration.getTime() - System.currentTimeMillis();
 
         if (ttl > 0) {
             redisTemplate.opsForValue()
-                    .set("blacklist:" + token,
-                            "true",
-                            ttl,
-                            java.util.concurrent.TimeUnit.MILLISECONDS);
+                    .set("blacklist:" + token, "true", ttl, java.util.concurrent.TimeUnit.MILLISECONDS);
         }
     }
 
     public LoginResponse refreshToken(String refreshTokenValue) {
-        System.out.println("INPUT TOKEN=[" + refreshTokenValue + "]");
-
         RefreshToken rfToken = refreshTokenRepository.findByRefreshToken(refreshTokenValue)
                 .orElseThrow(() -> new AppException(ErrorCode.INVALID_TOKEN));
-
-
-        Optional<RefreshToken> optional =
-                refreshTokenRepository.findByRefreshToken(refreshTokenValue);
-
-        System.out.println("FOUND = " + optional.isPresent());
-
-        RefreshToken s = optional
-                .orElseThrow(() -> new AppException(ErrorCode.INVALID_TOKEN));
-
-        System.out.println("TOKEN ID = " + s.getId());
 
         Users user = rfToken.getUser();
 
@@ -196,10 +186,12 @@ public class AuthService {
             throw new AppException(ErrorCode.TOKEN_EXPIRED);
         }
 
-        UserDetails userDetails =
-                customUserDetailsService.loadUserByUsername(user.getUsername());
+        UserDetails userDetails = customUserDetailsService.loadUserByUsername(user.getUsername());
 
-        String accessToken = jwtService.genericToken(userDetails);
+        String jti = java.util.UUID.randomUUID().toString();
+        String accessToken = jwtService.genericToken(userDetails, jti, user.getId());
+
+        redisTemplate.opsForValue().set("active_session:" + user.getId(), jti);
 
         return new LoginResponse(
                 accessToken,

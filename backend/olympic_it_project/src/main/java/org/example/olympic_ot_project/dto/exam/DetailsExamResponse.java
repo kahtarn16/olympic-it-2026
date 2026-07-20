@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.example.olympic_ot_project.dto.exam.question.QuestionResponse;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -15,7 +16,7 @@ public class DetailsExamResponse {
     private Integer id;
     private String name;
     private String status;
-    private Boolean shuffleOption;
+    private LocalDateTime scheduledStartAt;
     private String createdBy;
     private String createdAt;
 

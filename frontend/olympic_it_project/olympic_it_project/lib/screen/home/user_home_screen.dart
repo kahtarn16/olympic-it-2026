@@ -30,6 +30,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     switch (status) {
       case "RUNNING":
         return "Đang thi";
+      case "ROOM_READY":
+        return "Phòng thi đã sẵn sàng";
       case "WAITING":
         return "Đang chờ";
       case "FINISHED":

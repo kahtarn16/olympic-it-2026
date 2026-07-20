@@ -233,19 +233,26 @@ class _LoginScreenState extends State<LoginScreen> {
                       const Text("Ghi nhớ đăng nhập"),
                       const Spacer(),
                       TextButton(
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          overlayColor: Colors.transparent,
+                          foregroundColor: const Color(0xFF3B82F6),
+                        ),
                         onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => ForgotPasswordScreen(),
+                              builder: (_) => const ForgotPasswordScreen(),
                             ),
                           );
                         },
                         child: const Text(
                           "Quên mật khẩu?",
                           style: TextStyle(
-                            color: Color(0xFF3B82F6),
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
                           ),
                         ),
                       ),

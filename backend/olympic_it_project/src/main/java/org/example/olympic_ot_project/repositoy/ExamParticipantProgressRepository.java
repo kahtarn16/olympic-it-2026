@@ -18,4 +18,5 @@ public interface ExamParticipantProgressRepository
     );
     void deleteByExamId(Integer examId);
     int countByExamIdAndUserIdAndIsCorrectTrue(Integer examId, Integer userId);
+    List<ExamParticipantProgress> findByExamIdAndQuestionIndex(Integer examId, Integer questionIndex);
 }

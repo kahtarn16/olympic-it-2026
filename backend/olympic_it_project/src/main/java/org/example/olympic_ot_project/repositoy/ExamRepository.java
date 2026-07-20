@@ -1,12 +1,15 @@
 package org.example.olympic_ot_project.repositoy;
 
 import io.lettuce.core.dynamic.annotation.Param;
+import org.example.olympic_ot_project.core.ExamStatus;
 import org.example.olympic_ot_project.enity.Exam;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+
+import java.util.List;
 
 @Repository
 public interface ExamRepository extends JpaRepository<Exam, Integer> {
@@ -16,4 +19,6 @@ public interface ExamRepository extends JpaRepository<Exam, Integer> {
     WHERE (:keyword IS NULL OR LOWER(e.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
 """)
     Page<Exam> search(@Param("keyword") String keyword, Pageable pageable);
+
+    List<Exam> findByScheduledStartAtIsNotNullAndStatus(ExamStatus status);
 }

@@ -24,4 +24,6 @@ public interface ExamParticipantRepository extends JpaRepository<ExamParticipant
 
     List<ExamParticipant> findByExamIdAndStatus(Integer examId, Enum status);
     boolean existsByExamIdAndUser_UsernameAndStatusNot(Integer examId, String username, ParticipantStatus status);
+
+    boolean existsByExamIdAndSeatNumber(Integer examId, Integer seatNumber);
 }

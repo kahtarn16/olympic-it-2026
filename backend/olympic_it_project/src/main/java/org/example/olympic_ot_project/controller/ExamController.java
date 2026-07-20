@@ -114,5 +114,15 @@ public class ExamController {
         );
     }
 
+    @PutMapping("/participant/seat")
+    public ResponseEntity<ApiResponse<String>> updateSeat(
+            @RequestParam Integer examId,
+            @RequestParam Integer userId,
+            @RequestParam Integer seatNumber
+    ) {
+        examService.updateSeat(examId, userId, seatNumber);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật số ghế thành công"));
+    }
+
 
 }

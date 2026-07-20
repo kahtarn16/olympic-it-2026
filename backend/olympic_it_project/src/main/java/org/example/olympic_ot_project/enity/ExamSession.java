@@ -36,4 +36,7 @@ public class ExamSession {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    @Column(name = "auto_mode")
+    private Boolean autoMode;
 }

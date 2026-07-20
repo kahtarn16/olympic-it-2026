@@ -18,6 +18,8 @@ const btnStart = document.getElementById("btnStart");
 const btnNext = document.getElementById("btnNext");
 const antiCheatListEl = document.getElementById("antiCheatList");
 const bannedCountEl = document.getElementById("bannedCount");
+const submittedListEl = document.getElementById("submittedList");
+const submittedCountEl = document.getElementById("submittedCount");
 
 if (!token || !examId) {
     alert("Thiếu token hoặc examId, vui lòng quay lại danh sách đề thi.");
@@ -205,21 +207,6 @@ function renderQuestion(payload) {
     });
 }
 
-function renderAnswer(data) {
-    const correctOption = currentOptions.find(o => o.id === data.correctOptionId);
-
-    contentAreaEl.innerHTML = `
-        <div class="text-center py-3">
-            <h5 class="text-muted mb-3">Đáp án câu ${data.index + 1}</h5>
-            <div class="alert alert-success d-inline-block px-4 py-3">
-                ${correctOption
-                    ? `<span class="fs-5">✅ <b>${escapeHtml(correctOption.label)}. ${escapeHtml(correctOption.contentText)}</b></span>`
-                    : `<span class="fs-5">✅ Đáp án mẫu: <b>${escapeHtml(data.sampleAnswer) || "(không có)"}</b></span>`}
-            </div>
-        </div>
-    `;
-}
-
 function renderFinish(data) {
     const rows = (data.leaderboard || [])
         .map(l => `
@@ -303,7 +290,14 @@ function renderAntiCheatLog() {
                     <span class="badge ${log.banned ? "bg-danger" : "bg-secondary"}">
                         ${log.violationCount ?? "?"}/${MAX_VIOLATIONS}
                     </span>
-                    ${log.banned ? `<div class="badge bg-danger mt-1">Đã cấm thi</div>` : ""}
+                    ${log.banned ? `
+                        <div class="badge bg-danger mt-1">Đã cấm thi</div>
+                        <div class="mt-1">
+                            <button class="btn btn-outline-success btn-sm" onclick="unbanFromRoom(${log.userId})">
+                                ✅ Gỡ cấm
+                            </button>
+                        </div>
+                    ` : ""}
                 </div>
             </li>
         `;
@@ -312,11 +306,69 @@ function renderAntiCheatLog() {
     updateBannedCount();
 }
 
+let submittedAnswers = new Map();
+
+function resetSubmittedAnswers() {
+    submittedAnswers = new Map();
+    renderSubmittedList();
+}
+
+function getOptionLabel(optionId) {
+    const opt = currentOptions.find(o => o.id === optionId);
+    return opt ? `${opt.label ?? "?"}. ${opt.contentText}` : "(không rõ)";
+}
+
+function renderSubmittedList() {
+    const items = [...submittedAnswers.values()]
+        .sort((a, b) => new Date(a.answeredAt) - new Date(b.answeredAt));
+
+    submittedCountEl.innerText = items.length;
+
+    if (items.length === 0) {
+        submittedListEl.innerHTML = `<li class="list-group-item text-muted small">Chưa có ai nộp bài.</li>`;
+        return;
+    }
+
+    submittedListEl.innerHTML = items.map(a => {
+        const answerDisplay = a.selectedOptionId != null
+            ? escapeHtml(getOptionLabel(a.selectedOptionId))
+            : (a.answerText ? escapeHtml(a.answerText) : "(bỏ trống)");
+
+        return `
+            <li class="list-group-item">
+                <b>${escapeHtml(a.fullName)}</b>
+                ${a.seatNumber != null ? `<span class="text-muted small">(chỗ ${a.seatNumber})</span>` : ""}
+                <div class="small text-muted">${answerDisplay}</div>
+            </li>
+        `;
+    }).join("");
+}
+
+function handleAdminSubmission(data) {
+    submittedAnswers.set(data.userId, data);
+    renderSubmittedList();
+}
+
 function handleAntiCheatMessage(log) {
     // log đã có sẵn violationCount + banned từ backend (AntiCheatResponse)
     antiCheatLogs = [log, ...antiCheatLogs];
     renderAntiCheatLog();
 }
+
+window.unbanFromRoom = async function (userId) {
+    if (!confirm("Gỡ cấm thí sinh này để họ có thể tham gia lại phòng thi?")) return;
+
+    try {
+        await examSessionService.unbanParticipant(examId, userId);
+
+        antiCheatLogs = antiCheatLogs.filter(log => log.userId !== userId);
+        renderAntiCheatLog();
+
+        alert("Đã gỡ cấm và xóa lịch sử vi phạm! Thí sinh cần tham gia lại phòng thi.");
+    } catch (err) {
+        alert(err.message);
+    }
+};
 
 // --- XỬ LÝ MESSAGE TỪ WEBSOCKET (topic chính) ---
 function handleMessage(message) {
@@ -334,6 +386,7 @@ function handleMessage(message) {
             break;
         case "SHOW_QUESTION":
             setRoomState("SHOW_QUESTION");
+            resetSubmittedAnswers();
             renderQuestion(message);
             break;
         case "SHOW_ANSWER":
@@ -352,11 +405,120 @@ function handleMessage(message) {
             contentAreaEl.innerHTML = `<p class="text-muted">Đề thi đã được reset.</p>`;
             antiCheatLogs = [];
             renderAntiCheatLog();
+            resetSubmittedAnswers();
+            break;
+        case "REGRADE":
+            (message.seatResults || []).forEach(r => {
+                const existing = submittedAnswers.get(r.userId);
+                if (existing) {
+                    existing.isCorrect = r.isCorrect;
+                    submittedAnswers.set(r.userId, existing);
+                }
+            });
+            renderSubmittedList();
+            if (document.getElementById("regradeArea")) {
+                renderRegradePanel(message.questionIndex);
+            }
             break;
         default:
             console.warn("Không rõ loại message:", message);
     }
 }
+
+// --- REGRADE (chỉ áp dụng cho câu tự luận, lúc đang ở SHOW_ANSWER) ---
+let regradePending = new Map(); // userId -> isCorrect (giá trị admin đang chỉnh, chưa lưu)
+
+function renderAnswer(data) {
+    const correctOption = currentOptions.find(o => o.id === data.correctOptionId);
+    const isEssay = currentOptions.length === 0; // không có option => câu tự luận
+
+    contentAreaEl.innerHTML = `
+        <div class="text-center py-3">
+            <h5 class="text-muted mb-3">Đáp án câu ${data.index + 1}</h5>
+            <div class="alert alert-success d-inline-block px-4 py-3">
+                ${correctOption
+            ? `<span class="fs-5">✅ <b>${escapeHtml(correctOption.label)}. ${escapeHtml(correctOption.contentText)}</b></span>`
+            : `<span class="fs-5">✅ Đáp án mẫu: <b>${escapeHtml(data.sampleAnswer) || "(không có)"}</b></span>`}
+            </div>
+        </div>
+        ${isEssay ? `<div id="regradeArea" class="mt-3"></div>` : ""}
+    `;
+
+    if (isEssay) {
+        regradePending = new Map();
+        renderRegradePanel(data.index);
+    }
+}
+
+function renderRegradePanel(questionIndex) {
+    const area = document.getElementById("regradeArea");
+    if (!area) return;
+
+    const items = [...submittedAnswers.values()]
+        .filter(a => a.questionIndex === questionIndex);
+
+    if (items.length === 0) {
+        area.innerHTML = `<p class="text-muted small">Chưa có ai nộp bài câu này.</p>`;
+        return;
+    }
+
+    area.innerHTML = `
+        <div class="text-start">
+            <h6 class="text-muted">Chấm lại câu tự luận</h6>
+            <ul class="list-group mb-2">
+                ${items.map(a => {
+        const current = regradePending.has(a.userId) ? regradePending.get(a.userId) : a.isCorrect;
+        return `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <b>${escapeHtml(a.fullName)}</b>
+                                ${a.seatNumber != null ? `<span class="text-muted small">(chỗ ${a.seatNumber})</span>` : ""}
+                                <div class="small text-muted">${escapeHtml(a.answerText) || "(bỏ trống)"}</div>
+                            </div>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button"
+                                    class="btn ${current ? "btn-success" : "btn-outline-success"}"
+                                    onclick="setRegradeValue(${a.userId}, true)">Đúng</button>
+                                <button type="button"
+                                    class="btn ${!current ? "btn-danger" : "btn-outline-danger"}"
+                                    onclick="setRegradeValue(${a.userId}, false)">Sai</button>
+                            </div>
+                        </li>
+                    `;
+    }).join("")}
+            </ul>
+            <button class="btn btn-warning btn-sm" onclick="saveRegrade(${questionIndex})">
+                💾 Lưu chấm lại
+            </button>
+        </div>
+    `;
+}
+
+window.setRegradeValue = function (userId, isCorrect) {
+    regradePending.set(userId, isCorrect);
+    const answer = submittedAnswers.get(userId);
+    if (answer) renderRegradePanel(answer.questionIndex);
+};
+
+window.saveRegrade = async function (questionIndex) {
+    if (regradePending.size === 0) {
+        alert("Bạn chưa thay đổi gì.");
+        return;
+    }
+
+    const items = [...regradePending.entries()].map(([userId, isCorrect]) => ({
+        userId,
+        isCorrect,
+    }));
+
+    try {
+        await examSessionService.regradeAnswers(examId, { questionIndex, items });
+        regradePending = new Map();
+        alert("Đã lưu chấm lại!");
+    } catch (err) {
+        alert(err.message);
+    }
+};
 
 // --- KẾT NỐI WEBSOCKET ---
 stompConnect.connect(token, () => {
@@ -364,6 +526,8 @@ stompConnect.connect(token, () => {
     stompConnect.subscribe(`/topic/exam/${examId}`, handleMessage);
     // Anti-cheat dùng topic riêng, payload gửi thẳng AntiCheatResponse (không bọc {type, data})
     stompConnect.subscribe(`/topic/exam/${examId}/anti-cheat`, handleAntiCheatMessage);
+    // Danh sách nộp bài dùng topic riêng cho admin, không lộ đáp án cho học sinh khác
+    stompConnect.subscribe(`/topic/exam/${examId}/admin-submissions`, handleAdminSubmission);
 });
 
 // --- NÚT BẤM ADMIN ---

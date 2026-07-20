@@ -146,7 +146,8 @@ public class ExamService {
                                 ep.getUser().getFullName(),
                                 ep.getUser().getClasses().getClassName(),
                                 ep.getStatus(),
-                                ep.getScore()
+                                ep.getScore(),
+                                ep.getSeatNumber()
                         ))
                         .toList();
 
@@ -154,7 +155,7 @@ public class ExamService {
                 exam.getId(),
                 exam.getName(),
                 exam.getStatus().name(),
-                exam.getShuffleOption(),
+                exam.getScheduledStartAt(),
                 exam.getCreatedBy().getFullName(),
                 exam.getCreatedAt().toString(),
                 questions,
@@ -177,7 +178,8 @@ public class ExamService {
                         ep.getUser().getFullName(),
                         ep.getUser().getClasses().getClassName(),
                         ep.getStatus(),
-                        ep.getScore()
+                        ep.getScore(),
+                        ep.getSeatNumber()
                 ))
                 .toList();
     }
@@ -242,12 +244,34 @@ public class ExamService {
             throw new AppException(ErrorCode.EXAM_ALREADY_STARTED);
         }
 
+        if (request.getSeatNumber() != null
+                && examParticipantRepository.existsByExamIdAndSeatNumber(request.getExamId(), request.getSeatNumber())) {
+            throw new AppException(ErrorCode.SEAT_NUMBER_TAKEN);
+        }
+
         ExamParticipant ep = new ExamParticipant();
         ep.setExam(exam);
         ep.setUser(user);
         ep.setStatus(ParticipantStatus.INVITED);
         ep.setScore(0);
+        ep.setSeatNumber(request.getSeatNumber());
 
+        examParticipantRepository.save(ep);
+    }
+
+    public void updateSeat(Integer examId, Integer userId, Integer seatNumber) {
+
+        ExamParticipant ep = examParticipantRepository
+                .findByExamIdAndUserId(examId, userId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+
+        if (seatNumber != null
+                && !seatNumber.equals(ep.getSeatNumber())
+                && examParticipantRepository.existsByExamIdAndSeatNumber(examId, seatNumber)) {
+            throw new AppException(ErrorCode.SEAT_NUMBER_TAKEN);
+        }
+
+        ep.setSeatNumber(seatNumber);
         examParticipantRepository.save(ep);
     }
 

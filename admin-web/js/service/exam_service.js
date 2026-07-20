@@ -88,6 +88,13 @@ class ExamService {
         const json = await safeDecode(res);
         return unwrap(json);
     }
+
+    async updateSeat(examId, userId, seatNumber) {
+        const params = new URLSearchParams({ examId, userId, seatNumber });
+        const res = await apiClient.put(`${BASE}/participant/seat?${params.toString()}`);
+        const json = await safeDecode(res);
+        return unwrap(json);
+    }
 }
 
 export const examService = new ExamService();

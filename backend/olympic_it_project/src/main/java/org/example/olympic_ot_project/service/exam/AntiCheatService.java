@@ -2,7 +2,6 @@ package org.example.olympic_ot_project.service.exam;
 
 import lombok.RequiredArgsConstructor;
 import org.example.olympic_ot_project.config.WsPublisher;
-import org.example.olympic_ot_project.core.AccountStudentStatus;
 import org.example.olympic_ot_project.core.ExamStatus;
 import org.example.olympic_ot_project.core.ParticipantStatus;
 import org.example.olympic_ot_project.dto.exam.anticheat.AntiCheatRequest;
@@ -94,9 +93,6 @@ public class AntiCheatService {
         if (banned) {
             participant.setStatus(ParticipantStatus.BANNED);
             participantRepository.save(participant);
-
-            user.setStatus(AccountStudentStatus.LOCKED);
-            usersRepository.save(user);
         }
 
         AntiCheatResponse response = AntiCheatResponse.builder()

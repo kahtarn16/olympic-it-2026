@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class JwtService {
@@ -18,10 +19,12 @@ public class JwtService {
     private String secret;
     long threeHoursInMillis = 1000L * 60 * 60 * 3;
 
-    public String genericToken(UserDetails userDetails) {
+    public String genericToken(UserDetails userDetails, String jti, Integer userId) {
         Map<String, Object> claims = new HashMap<>();
         String role = userDetails.getAuthorities().iterator().next().getAuthority();
         claims.put("role", role);
+        claims.put("jti", jti);
+        claims.put("userId", userId);
 
         return Jwts.builder()
                 .claims(claims)

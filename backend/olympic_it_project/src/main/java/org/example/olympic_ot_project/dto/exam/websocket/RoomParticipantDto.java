@@ -10,11 +10,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RoomParticipantDto {
-
     private Integer userId;
-
     private String fullName;
-
     private String className;
-
+    private Integer seatNumber;
 }

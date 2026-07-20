@@ -31,4 +31,7 @@ public class ExamParticipant {
     private Integer score = 0;
 
     private LocalDateTime invitedAt = LocalDateTime.now();
+
+    @Column(name = "seat_number")
+    private Integer seatNumber;
 }

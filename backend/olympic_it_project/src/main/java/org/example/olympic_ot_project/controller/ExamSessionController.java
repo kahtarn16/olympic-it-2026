@@ -1,10 +1,8 @@
 package org.example.olympic_ot_project.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.example.olympic_ot_project.dto.exam.ExamRestoreResponse;
-import org.example.olympic_ot_project.dto.exam.ExamSessionResponse;
-import org.example.olympic_ot_project.dto.exam.Leaderboard;
-import org.example.olympic_ot_project.dto.exam.SubmitAnswerResponse;
+import org.example.olympic_ot_project.dto.ApiResponse;
+import org.example.olympic_ot_project.dto.exam.*;
 import org.example.olympic_ot_project.dto.exam.websocket.SubmitAnswerPayload;
 import org.example.olympic_ot_project.service.exam.ExamService;
 import org.example.olympic_ot_project.service.exam.ExamSessionService;
@@ -73,4 +71,23 @@ public class ExamSessionController {
     ) {
         examSessionService.unbanParticipant(examId, userId);
     }
+
+    @PostMapping("/{examId}/schedule")
+    public void scheduleAutoStart(@PathVariable Integer examId, @RequestBody ScheduleExamRequest request) {
+        examSessionService.scheduleAutoStart(examId, request.getStartAt());
+    }
+
+    @DeleteMapping("/{examId}/schedule")
+    public void cancelSchedule(@PathVariable Integer examId) {
+        examSessionService.cancelAutoStart(examId);
+    }
+
+    @PostMapping("/{examId}/regrade")
+    public void regradeAnswers(
+            @PathVariable Integer examId,
+            @RequestBody AdminRegradeRequest request
+    ) {
+        examSessionService.adminRegradeAnswers(examId, request);
+    }
+
 }

@@ -27,15 +27,6 @@
                     <input id="examName" type="text" class="form-control" placeholder="Nhập tên đề thi...">
                 </div>
 
-                <div class="col-md-4 d-flex align-items-end">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="shuffleOption">
-                        <label class="form-check-label fw-bold" for="shuffleOption">
-                            Trộn thứ tự câu hỏi
-                        </label>
-                    </div>
-                </div>
-
                 <div class="col-md-12 text-end">
                     <button type="button" id="btnCancel" class="btn btn-secondary me-2 d-none">Hủy sửa</button>
                     <button type="button" id="btnSubmit" class="btn btn-primary px-4">Thêm đề thi</button>
@@ -63,12 +54,11 @@
                     <thead class="table-primary">
                         <tr>
                             <th style="width: 5%;">ID</th>
-                            <th style="width: 25%;" class="text-start">Tên đề thi</th>
+                            <th style="width: 30%;" class="text-start">Tên đề thi</th>
                             <th style="width: 12%;">Trạng thái</th>
-                            <th style="width: 10%;">Trộn đề</th>
                             <th style="width: 18%;">Người tạo</th>
                             <th style="width: 15%;">Ngày tạo</th>
-                            <th style="width: 15%;">Thao tác</th>
+                            <th style="width: 20%;">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody id="examTable"></tbody>
@@ -108,6 +98,14 @@
 
             </div>
 
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                    <button id="btnOpenPresentation" class="btn btn-outline-primary btn-sm me-2">
+                        📺 Xuất màn hình khán giả
+                    </button>
+                </div>
+            </div>
+
             <div class="row g-4">
 
                 <!-- CỘT CÂU HỎI -->
@@ -115,6 +113,23 @@
                     <h6 class="fw-bold text-success">📚 Câu hỏi trong đề</h6>
 
                     <ul id="examQuestionList" class="list-group mb-3"></ul>
+
+                    <!-- BỘ LỌC CÂU HỎI: danh mục + độ khó -->
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <select id="questionCategoryFilter" class="form-select form-select-sm">
+                                <option value="">-- Tất cả danh mục --</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <select id="questionLevelFilter" class="form-select form-select-sm">
+                                <option value="">-- Tất cả độ khó --</option>
+                                <option value="EASY">Dễ</option>
+                                <option value="MEDIUM">Trung bình</option>
+                                <option value="HARD">Khó</option>
+                            </select>
+                        </div>
+                    </div>
 
                     <div class="input-group">
                         <select id="questionSelect" class="form-select"></select>
@@ -128,8 +143,17 @@
 
                     <ul id="examParticipantList" class="list-group mb-3"></ul>
 
+                    <!-- BỘ LỌC THÍ SINH: lớp -->
+                    <div class="mb-2">
+                        <select id="participantClassFilter" class="form-select form-select-sm">
+                            <option value="">-- Tất cả lớp --</option>
+                        </select>
+                    </div>
+
                     <div class="input-group">
                         <select id="participantSelect" class="form-select"></select>
+                        <input type="number" id="seatNumberInput" class="form-control" placeholder="Số ghế"
+                            style="max-width:110px" min="1">
                         <button id="btnAddParticipant" class="btn btn-info text-white">Thêm</button>
                     </div>
                 </div>

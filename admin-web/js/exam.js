@@ -2,13 +2,16 @@ import { examService } from "./service/exam_service.js";
 import { questionService } from "./service/question_service.js";
 import { studentService } from "./service/student_service.js";
 import { examSessionService } from "./service/exam_session_service.js";
+import { categoryService } from "./service/category_service.js";
+// ⚠️ Sửa lại đúng tên file service quản lý lớp bạn đang có nếu khác đường dẫn này
+import { classesService } from "./service/classes_service.js";
 
 // DOM Elements cho Form Đề thi
 const examName = document.getElementById("examName");
-const shuffleOption = document.getElementById("shuffleOption");
 const btnSubmit = document.getElementById("btnSubmit");
 const btnCancel = document.getElementById("btnCancel");
 const formTitle = document.getElementById("formTitle");
+const btnOpenPresentation = document.getElementById("btnOpenPresentation");
 
 // DOM Elements cho Tìm kiếm
 const keywordInput = document.getElementById("keywordInput");
@@ -31,10 +34,18 @@ const examActionArea = document.getElementById("examActionArea");
 const examQuestionList = document.getElementById("examQuestionList");
 const questionSelect = document.getElementById("questionSelect");
 const btnAddQuestion = document.getElementById("btnAddQuestion");
+// Bộ lọc câu hỏi
+const questionCategoryFilter = document.getElementById("questionCategoryFilter");
+const questionLevelFilter = document.getElementById("questionLevelFilter");
 
 const examParticipantList = document.getElementById("examParticipantList");
 const participantSelect = document.getElementById("participantSelect");
 const btnAddParticipant = document.getElementById("btnAddParticipant");
+// Bộ lọc thí sinh
+const participantClassFilter = document.getElementById("participantClassFilter");
+
+// Nhãn ngắn cho độ khó hiển thị trong dropdown câu hỏi
+const LEVEL_LABEL_SHORT = { EASY: "Dễ", MEDIUM: "TB", HARD: "Khó" };
 
 // --- STATE QUẢN LÝ ỨNG DỤNG ---
 let editId = null;
@@ -45,6 +56,7 @@ let currentKeyword = "";
 
 let managingExamId = null; // ID của đề thi đang mở khu vực Quản lý
 let currentExamQuestions = []; // Danh sách câu hỏi hiện có trong đề đang quản lý (để kiểm tra STT)
+let scheduleCountdownInterval = null;
 
 // Nhãn trạng thái tiếng Việt cho ExamStatus (WAITING / RUNNING / FINISHED)
 const STATUS_LABELS = {
@@ -67,10 +79,28 @@ function renderExamActions(exam) {
 
         case "WAITING":
             html = `
-        <button class="btn btn-success"
-            onclick="createRoom(${exam.id})">
-            🟢 Tạo phòng
+        <button class="btn btn-success" onclick="createRoom(${exam.id})">
+            🟢 Tạo phòng ngay
         </button>
+
+        ${exam.scheduledStartAt ? `
+            <div class="alert alert-info mt-2 py-2 px-3 mb-0 d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="small">Tự động bắt đầu lúc: <b>${new Date(exam.scheduledStartAt).toLocaleString("vi-VN")}</b></div>
+                    <div class="fw-bold text-primary" id="countdownDisplay">Đang tính...</div>
+                </div>
+                <button class="btn btn-outline-danger btn-sm" onclick="cancelSchedule(${exam.id})">
+                    Hủy hẹn giờ
+                </button>
+            </div>
+        ` : `
+            <div class="input-group input-group-sm mt-2" style="max-width: 320px;">
+                <input type="datetime-local" id="scheduleInput_${exam.id}" class="form-control">
+                <button class="btn btn-outline-primary" onclick="scheduleAutoStart(${exam.id})">
+                    ⏰ Hẹn giờ tự động
+                </button>
+            </div>
+        `}
     `;
             break;
 
@@ -112,6 +142,73 @@ function renderExamActions(exam) {
     examActionArea.innerHTML = html;
 }
 
+function startScheduleCountdown(targetTimeStr) {
+    clearInterval(scheduleCountdownInterval);
+
+    const targetTime = new Date(targetTimeStr).getTime();
+    const el = document.getElementById("countdownDisplay");
+    if (!el) return;
+
+    function tick() {
+        const el = document.getElementById("countdownDisplay");
+        if (!el) {
+            clearInterval(scheduleCountdownInterval);
+            return;
+        }
+
+        const now = Date.now();
+        const diff = targetTime - now;
+
+        if (diff <= 0) {
+            el.innerText = "Đang tự động tạo phòng...";
+            clearInterval(scheduleCountdownInterval);
+            return;
+        }
+
+        const totalSeconds = Math.floor(diff / 1000);
+        const h = Math.floor(totalSeconds / 3600);
+        const m = Math.floor((totalSeconds % 3600) / 60);
+        const s = totalSeconds % 60;
+
+        const parts = [];
+        if (h > 0) parts.push(`${h}h`);
+        parts.push(`${String(m).padStart(2, "0")}m`);
+        parts.push(`${String(s).padStart(2, "0")}s`);
+
+        el.innerText = `Còn lại: ${parts.join(" ")}`;
+    }
+
+    tick();
+    scheduleCountdownInterval = setInterval(tick, 1000);
+}
+
+window.scheduleAutoStart = async function (examId) {
+    const input = document.getElementById(`scheduleInput_${examId}`);
+    if (!input || !input.value) {
+        alert("Vui lòng chọn thời gian!");
+        return;
+    }
+
+    try {
+        await examSessionService.scheduleAutoStart(examId, input.value);
+        alert("Đã hẹn giờ tự động tạo phòng và bắt đầu thi!");
+        await refreshManagePanel();
+    } catch (err) {
+        alert(err.message);
+    }
+};
+
+window.cancelSchedule = async function (examId) {
+    if (!confirm("Hủy lịch tự động của đề thi này?")) return;
+
+    try {
+        await examSessionService.cancelSchedule(examId);
+        await refreshManagePanel();
+    } catch (err) {
+        alert(err.message);
+    }
+};
+
 window.restartExam = async function (examId) {
 
     if (!confirm("Bạn có chắc muốn thi lại?")) {
@@ -122,9 +219,15 @@ window.restartExam = async function (examId) {
 
         await examSessionService.reset(examId);
 
-        localStorage.setItem("currentExamId", examId);
+        alert("Đã reset đề thi, có thể tạo phòng lại.");
 
-        window.location.href = "exam_room.html";
+        // Nếu đang mở đúng panel quản lý của đề này thì refresh tại chỗ
+        if (managingExamId === examId) {
+            await refreshManagePanel();
+        }
+
+        // Cập nhật lại bảng danh sách đề thi (status đã đổi về WAITING)
+        await loadExams();
 
     } catch (err) {
         alert(err.message);
@@ -155,11 +258,8 @@ window.connectRoom = async function (examId) {
 };
 
 window.viewResult = function (examId) {
-
     localStorage.setItem("currentExamId", examId);
-
-    window.location.href = "exam_result.html";
-
+    window.location.href = "resuilt.html";
 };
 
 // --- LẤY ID ADMIN ĐANG ĐĂNG NHẬP ---
@@ -187,7 +287,6 @@ async function loadExams() {
                 <td>${e.id}</td>
                 <td class="text-start">${e.name}</td>
                 <td>${statusBadge(e.status)}</td>
-                <td>${e.shuffleOption ? "Có" : "Không"}</td>
                 <td>${e.createdBy || "N/A"}</td>
                 <td>${e.createdAt ? new Date(e.createdAt).toLocaleString("vi-VN") : ""}</td>
                 <td>
@@ -219,6 +318,13 @@ keywordInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") btnSearch.click();
 });
 
+btnOpenPresentation.addEventListener("click", () => {
+    if (!managingExamId) return;
+    localStorage.setItem("currentExamId", managingExamId);
+
+    window.open("presentation.html", "_blank");
+});
+
 // --- GỬI FORM (CREATE / UPDATE) ĐỀ THI ---
 btnSubmit.addEventListener("click", async () => {
     if (!examName.value.trim()) {
@@ -228,10 +334,9 @@ btnSubmit.addEventListener("click", async () => {
 
     try {
         if (editId) {
-            // UpdateExamRequest: { name, shuffleOption }
+            // UpdateExamRequest: { name }
             const request = {
                 name: examName.value.trim(),
-                shuffleOption: shuffleOption.checked,
             };
             await examService.update(editId, request);
             alert("Cập nhật đề thi thành công!");
@@ -239,10 +344,9 @@ btnSubmit.addEventListener("click", async () => {
             const createdById = getCurrentAdminId();
             if (!createdById) return;
 
-            // CreateExamRequest: { name, shuffleOption, createdById }
+            // CreateExamRequest: { name, createdById }
             const request = {
                 name: examName.value.trim(),
-                shuffleOption: shuffleOption.checked,
                 createdById: createdById,
             };
             await examService.create(request);
@@ -265,7 +369,6 @@ window.editExam = async function (id) {
         btnSubmit.innerText = "Cập nhật";
 
         examName.value = e.name;
-        shuffleOption.checked = !!e.shuffleOption;
 
         window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
@@ -294,7 +397,6 @@ function clearForm() {
     btnSubmit.innerText = "Thêm đề thi";
 
     examName.value = "";
-    shuffleOption.checked = false;
 }
 btnCancel.addEventListener("click", clearForm);
 
@@ -305,8 +407,13 @@ btnCancel.addEventListener("click", clearForm);
 window.manageExam = async function (id) {
     managingExamId = id;
     managePanel.classList.remove("d-none");
-    await loadQuestionOptionsForSelect(); // đổ dropdown danh sách toàn bộ câu hỏi để chọn thêm vào đề
-    await loadUserOptionsForSelect();     // đổ dropdown danh sách người dùng để chọn thí sinh thêm vào đề
+
+    // Đổ dữ liệu cho 2 dropdown bộ lọc trước
+    await loadCategoryFilterOptions();
+    await loadClassFilterOptions();
+
+    await loadQuestionOptionsForSelect(); // đổ dropdown danh sách câu hỏi (theo bộ lọc hiện tại) để chọn thêm vào đề
+    await loadUserOptionsForSelect();     // đổ dropdown danh sách sinh viên (theo bộ lọc hiện tại) để chọn thí sinh thêm vào đề
     await refreshManagePanel();
     managePanel.scrollIntoView({ behavior: "smooth" });
 };
@@ -318,6 +425,7 @@ function closeManagePanel() {
     managePanel.classList.add("d-none");
     examQuestionList.innerHTML = "";
     examParticipantList.innerHTML = "";
+    clearInterval(scheduleCountdownInterval);
 }
 
 async function refreshManagePanel() {
@@ -328,6 +436,10 @@ async function refreshManagePanel() {
     manageExamName.innerText = detail.name;
     manageExamStatus.outerHTML = statusBadge(detail.status).replace("<span", `<span id="manageExamStatus"`);
     renderExamActions(detail);
+
+    if (detail.scheduledStartAt) {
+        startScheduleCountdown(detail.scheduledStartAt);
+    }
 
     // Danh sách câu hỏi trong đề
     const questions = detail.questions || [];
@@ -358,40 +470,99 @@ async function refreshManagePanel() {
         const isBanned = p.status === "BANNED";
 
         examParticipantList.innerHTML += `
-            <li class="list-group-item d-flex justify-content-between align-items-center ${isBanned ? "list-group-item-danger" : ""}">
-                <span>
-                    ${p.fullName} <span class="text-muted small">(${p.className || "N/A"})</span>
-                    — <span class="badge ${isBanned ? "bg-danger" : "bg-secondary"}">${p.status}</span>
-                </span>
-                <div class="d-flex gap-1">
-                    ${isBanned
+        <li class="list-group-item d-flex justify-content-between align-items-center ${isBanned ? "list-group-item-danger" : ""}">
+            <span>
+                <span class="badge bg-dark me-1">Ghế ${p.seatNumber ?? "?"}</span>
+                ${p.fullName} <span class="text-muted small">(${p.className || "N/A"})</span>
+                — <span class="badge ${isBanned ? "bg-danger" : "bg-secondary"}">${p.status}</span>
+            </span>
+            <div class="d-flex gap-1">
+                <button class="btn btn-outline-secondary btn-sm" onclick="editSeat(${p.userId}, ${p.seatNumber ?? "null"})">Đổi ghế</button>
+                ${isBanned
                 ? `<button class="btn btn-outline-success btn-sm" onclick="unbanParticipant(${p.userId})">Gỡ cấm</button>`
                 : ""}
-                    <button class="btn btn-outline-danger btn-sm" onclick="removeParticipantFromExam(${p.userId})">Xóa</button>
-                </div>
-            </li>
-        `;
+                <button class="btn btn-outline-danger btn-sm" onclick="removeParticipantFromExam(${p.userId})">Xóa</button>
+            </div>
+        </li>
+    `;
     });
 }
 
-// Đổ danh sách toàn bộ câu hỏi (từ questionService) vào dropdown chọn để thêm vào đề
+// ---------- BỘ LỌC CÂU HỎI (danh mục + độ khó) ----------
+
+// Đổ danh sách danh mục vào dropdown lọc câu hỏi
+async function loadCategoryFilterOptions() {
+    try {
+        const categories = await categoryService.getAll();
+        questionCategoryFilter.innerHTML =
+            `<option value="">-- Tất cả danh mục --</option>` +
+            (categories || []).map(c => `<option value="${c.id}">${c.name}</option>`).join("");
+    } catch (err) {
+        console.warn("Không tải được danh mục:", err.message);
+    }
+}
+
+// Đổ danh sách câu hỏi (lọc theo danh mục + độ khó đang chọn) vào dropdown chọn để thêm vào đề
 async function loadQuestionOptionsForSelect() {
     try {
-        const data = await questionService.getAll(0, 100, null); // lấy tối đa 100 câu hỏi đầu tiên
-        const items = data.items || [];
+        const categoryId = questionCategoryFilter.value || undefined;
+        const level = questionLevelFilter.value || "";
+
+        // categoryId lọc được ở backend luôn (đúng như questionService.getAll hỗ trợ)
+        const data = await questionService.getAll(0, 100, categoryId);
+        let items = data.items || [];
+
+        // Backend chưa có tham số lọc level -> lọc tạm thời ở phía client
+        if (level) {
+            items = items.filter(q => q.level === level);
+        }
+
+        if (items.length === 0) {
+            questionSelect.innerHTML = `<option value="">Không có câu hỏi phù hợp</option>`;
+            return;
+        }
+
         questionSelect.innerHTML = items
-            .map(q => `<option value="${q.id}">#${q.id} - ${(q.content || "").slice(0, 40)}</option>`)
+            .map(q => {
+                const levelTag = q.level ? ` [${LEVEL_LABEL_SHORT[q.level] || q.level}]` : "";
+                return `<option value="${q.id}">#${q.id} - ${(q.content || "").slice(0, 40)}${levelTag}</option>`;
+            })
             .join("");
     } catch (err) {
         questionSelect.innerHTML = `<option value="">Không tải được danh sách câu hỏi</option>`;
     }
 }
 
-// Đổ danh sách sinh viên (từ studentService) vào dropdown chọn thí sinh để thêm vào đề
+// Khi đổi bộ lọc danh mục hoặc độ khó -> load lại dropdown câu hỏi
+questionCategoryFilter.addEventListener("change", loadQuestionOptionsForSelect);
+questionLevelFilter.addEventListener("change", loadQuestionOptionsForSelect);
+
+// ---------- BỘ LỌC THÍ SINH (lớp) ----------
+
+// Đổ danh sách lớp vào dropdown lọc thí sinh
+async function loadClassFilterOptions() {
+    try {
+        const classes = await classesService.getAll(); // không truyền academicYearId -> lấy tất cả các lớp
+        participantClassFilter.innerHTML =
+            `<option value="">-- Tất cả lớp --</option>` +
+            (classes || []).map(c => `<option value="${c.id}">${c.className}</option>`).join("");
+    } catch (err) {
+        console.warn("Không tải được danh sách lớp:", err.message);
+    }
+}
+
+// Đổ danh sách sinh viên (lọc theo lớp đang chọn) vào dropdown chọn thí sinh để thêm vào đề
 async function loadUserOptionsForSelect() {
     try {
-        const data = await studentService.getAll(); // không truyền classId -> lấy toàn bộ sinh viên
+        const classId = participantClassFilter.value || null;
+        const data = await studentService.getAll(classId);
         const items = (data || []).filter(u => u.status !== "LOCKED"); // bỏ sinh viên đang bị khóa
+
+        if (items.length === 0) {
+            participantSelect.innerHTML = `<option value="">Không có sinh viên phù hợp</option>`;
+            return;
+        }
+
         participantSelect.innerHTML = items
             .map(u => `<option value="${u.id}">${u.fullName} - ${u.className || "N/A"} (${u.username})</option>`)
             .join("");
@@ -399,6 +570,9 @@ async function loadUserOptionsForSelect() {
         participantSelect.innerHTML = `<option value="">Không tải được danh sách sinh viên</option>`;
     }
 }
+
+// Khi đổi bộ lọc lớp -> load lại dropdown thí sinh
+participantClassFilter.addEventListener("change", loadUserOptionsForSelect);
 
 // Thêm câu hỏi vào đề
 btnAddQuestion.addEventListener("click", async () => {
@@ -449,6 +623,8 @@ window.removeQuestionFromExam = async function (questionId) {
 btnAddParticipant.addEventListener("click", async () => {
     if (!managingExamId) return;
     const userId = parseInt(participantSelect.value);
+    const seatNumberRaw = document.getElementById("seatNumberInput").value;
+    const seatNumber = seatNumberRaw ? parseInt(seatNumberRaw) : null;
 
     if (!userId) {
         alert("Vui lòng chọn thí sinh cần thêm!");
@@ -456,11 +632,13 @@ btnAddParticipant.addEventListener("click", async () => {
     }
 
     try {
-        // AddParticipantRequest: { examId, userId }
+        // AddParticipantRequest: { examId, userId, seatNumber }
         await examService.addParticipant({
             examId: managingExamId,
             userId: userId,
+            seatNumber: seatNumber,
         });
+        document.getElementById("seatNumberInput").value = "";
         await refreshManagePanel();
     } catch (err) {
         alert(err.message);
@@ -486,6 +664,18 @@ window.unbanParticipant = async function (userId) {
 
     try {
         await examSessionService.unbanParticipant(managingExamId, userId);
+        await refreshManagePanel();
+    } catch (err) {
+        alert(err.message);
+    }
+};
+
+window.editSeat = async function (userId, currentSeat) {
+    const val = prompt("Nhập số ghế mới:", currentSeat ?? "");
+    if (val === null || val.trim() === "") return;
+
+    try {
+        await examService.updateSeat(managingExamId, userId, parseInt(val));
         await refreshManagePanel();
     } catch (err) {
         alert(err.message);

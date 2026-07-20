@@ -80,7 +80,11 @@ public enum ErrorCode {
     UNAUTHENTICATED(1070,"Chưa được xác thực"),
     DUPLICATE_ANTI_CHEAT_EVENT(1071, "Log bị trùng lặp"),
     EXAM_NOT_FINISHED(1072, "Bài thi chưa hoàn thành, không thể xem kết quả"),
-    PARTICIPANT_BANNED(1073, "Bạn đã bị cấm thi do vi phạm quy chế nhiều lần");
+    PARTICIPANT_BANNED(1073, "Bạn đã bị cấm thi do vi phạm quy chế nhiều lần"),
+    EXAM_NO_QUESTIONS(1074, "Đề thi chưa có câu hỏi nào"),
+    EXAM_NO_PARTICIPANTS(1075, "Đề thi chưa có thí sinh nào"),
+    SEAT_NUMBER_TAKEN(1076, "Số này đã có thí sinh ngồi"),
+    INVALID_QUESTION_TYPE(1078, "Chỉ có thể sửa đáp án cho câu hỏi tự luận");
 
 
     private final int code;

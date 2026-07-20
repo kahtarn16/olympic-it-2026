@@ -28,4 +28,7 @@ public class Exam {
     private Boolean shuffleOption = false;
 
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    @Column(name = "scheduled_start_at")
+    private LocalDateTime scheduledStartAt;
 }

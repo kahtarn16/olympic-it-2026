@@ -25,7 +25,7 @@ class ExamSessionService {
 
     async getSession(examId) {
         const res = await apiClient.get(`${BASE}/${examId}`);
-        return safeDecode(res); // <-- SỬA: bỏ unwrap
+        return safeDecode(res);
     }
 
     async restore(examId) {
@@ -49,6 +49,7 @@ class ExamSessionService {
         const json = await safeDecode(res);
         return unwrap(json);
     }
+
     async adminRestore(examId) {
         const res = await apiClient.get(`${BASE}/${examId}/admin-restore`);
         return safeDecode(res);
@@ -59,6 +60,25 @@ class ExamSessionService {
         const json = await safeDecode(res);
         return unwrap(json);
     }
+
+    async scheduleAutoStart(examId, startAt) {
+        const res = await apiClient.post(`${BASE}/${examId}/schedule`, { startAt });
+        const json = await safeDecode(res);
+        return unwrap(json);
+    }
+
+    async cancelSchedule(examId) {
+        const res = await apiClient.delete(`${BASE}/${examId}/schedule`);
+        const json = await safeDecode(res);
+        return unwrap(json);
+    }
+
+    async regradeAnswers(examId, request) {
+        const res = await apiClient.post(`${BASE}/${examId}/regrade`, request);
+        const json = await safeDecode(res);
+        return unwrap(json);
+    }
 }
+
 
 export const examSessionService = new ExamSessionService();

@@ -39,7 +39,6 @@ public class JwtFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String path = request.getRequestURI();
 
-
         if (path.startsWith("/ws")) {
             filterChain.doFilter(request, response);
             return;
@@ -67,13 +66,26 @@ public class JwtFilter extends OncePerRequestFilter {
 
             String username = claims.getSubject();
             String role = claims.get("role", String.class);
+            String jti = claims.get("jti", String.class);
+            Long userId = claims.get("userId", Long.class);
 
             if (role == null || role.isBlank()) {
                 throw new RuntimeException("Role missing in JWT");
             }
+            if (jti == null || userId == null) {
+                throw new RuntimeException("Session info missing in JWT");
+            }
+
+            // Chỉ cho phép token thuộc phiên đăng nhập gần nhất (1 thiết bị)
+            String activeJti = redisTemplate.opsForValue().get("active_session:" + userId);
+            if (activeJti == null || !activeJti.equals(jti)) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"message\":\"Session expired: logged in from another device\"}");
+                return;
+            }
 
             role = role.trim().toUpperCase();
-
             if (!role.startsWith("ROLE_")) {
                 role = "ROLE_" + role;
             }

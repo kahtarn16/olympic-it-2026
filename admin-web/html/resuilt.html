@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Kết quả thi</title>
+    <link rel="stylesheet" href="../css/bootstrap.min.css">
+</head>
+
+<body class="bg-light">
+
+    <div class="container py-4">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 id="examName">Kết quả thi</h3>
+            <a href="exam.html" class="btn btn-secondary">⬅ Quay lại danh sách</a>
+        </div>
+
+        <div class="card shadow">
+            <div class="card-header">
+                🏆 Bảng xếp hạng
+            </div>
+            <div class="card-body">
+                <table class="table table-striped align-middle text-center">
+                    <thead class="table-primary">
+                        <tr>
+                            <th>Hạng</th>
+                            <th>Thí sinh</th>
+                            <th>Điểm</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboardTable">
+                        <tr><td colspan="3" class="text-muted">Đang tải...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="module" src="../js/resuilt.js"></script>
+</body>
+
+</html>

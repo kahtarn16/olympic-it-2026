@@ -29,7 +29,3 @@ questionCard?.addEventListener("click", () => {
 examCard?.addEventListener("click", () => {
     window.location.href = "exam.html";
 });
-
-resultCard?.addEventListener("click", () => {
-    window.location.href = "result.html";
-});
