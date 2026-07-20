@@ -1162,9 +1162,7 @@ public class ExamSessionService {
         }
 
         try {
-            // Chạy tự động theo lịch hẹn => autoMode = true, sẽ tự chuyển câu sau mỗi lần show đáp án
             this.startExamInternal(examId, true);
-            log.info("[AUTO] Đã tự động bắt đầu thi examId={}", examId);
         } catch (Exception e) {
             log.error("[AUTO] Lỗi khi tự động bắt đầu thi examId={}: {}", examId, e.getMessage(), e);
         }
@@ -1172,12 +1170,9 @@ public class ExamSessionService {
 
     @Transactional
     public void autoNextQuestion(Integer examId) {
-        log.info("[AUTO] Tự động chuyển sang câu hỏi tiếp theo examId={}", examId);
-
         ExamSession session = examSessionRepository.findByExamId(examId).orElse(null);
 
         if (session == null) {
-            log.warn("[AUTO] examId={} không có session, bỏ qua", examId);
             return;
         }
 

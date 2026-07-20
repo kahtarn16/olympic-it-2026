@@ -80,6 +80,8 @@ public class AuthService {
 
         String otp = String.format("%06d", new Random().nextInt(1000000));
 
+        System.out.println(otp);
+
         OtpEmail otpEmail = new OtpEmail();
         otpEmail.setUser(user);
         otpEmail.setOtpCode(otp);

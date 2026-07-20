@@ -1,0 +1,365 @@
+CREATE DATABASE olympic_it_db;
+USE olympic_it_db;
+
+);
+-- =====================
+-- ROLE
+-- =====================
+CREATE TABLE role (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    role_name VARCHAR(20) NOT NULL UNIQUE
+);
+
+INSERT INTO role (id, role_name) VALUES
+(1, 'ADMIN'),
+(2, 'USER');
+
+-- =====================
+-- ACADEMIC YEAR + CLASS
+-- =====================
+CREATE TABLE academic_year (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    year_name VARCHAR(20) NOT NULL UNIQUE
+);
+
+CREATE TABLE classes (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    class_name VARCHAR(50) NOT NULL,
+    academic_year_id INT NOT NULL,
+
+    UNIQUE(class_name, academic_year_id),
+
+    FOREIGN KEY (academic_year_id)
+        REFERENCES academic_year(id)
+        ON DELETE RESTRICT
+);
+
+-- =====================
+-- USERS
+-- =====================
+CREATE TABLE users (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+
+    role_id INT NOT NULL,
+    class_id INT NULL,
+
+    username VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    email VARCHAR(50) NOT NULL UNIQUE,
+    full_name VARCHAR(255) NOT NULL,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    status ENUM('ACTIVE','LOCKED') DEFAULT 'ACTIVE',
+
+    FOREIGN KEY (role_id) REFERENCES role(id) ON DELETE RESTRICT,
+    FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE SET NULL
+);
+
+-- =====================
+-- AUTH
+-- =====================
+CREATE TABLE otp_email (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    otp_code VARCHAR(6) NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    expired_at DATETIME NOT NULL,
+    is_used BOOLEAN DEFAULT FALSE,
+
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE refresh_token (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    refresh_token VARCHAR(500) NOT NULL UNIQUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    expired_at DATETIME NOT NULL,
+    is_revoked BOOLEAN DEFAULT FALSE,
+
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- =====================
+-- CATEGORY
+-- =====================
+CREATE TABLE category (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL UNIQUE
+);
+
+-- =====================
+-- QUESTION
+-- =====================
+CREATE TABLE question (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    content TEXT NOT NULL,
+
+    type ENUM('MCQ_TEXT','MCQ_MEDIA','ESSAY_TEXT','ESSAY_MEDIA') NOT NULL,
+    level ENUM('EASY','MEDIUM','HARD') NOT NULL,
+
+    image_url VARCHAR(500),
+    video_url VARCHAR(500),
+
+    category_id INT,
+    FOREIGN KEY (category_id) REFERENCES category(id)
+);
+
+CREATE TABLE question_option (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    question_id INT NOT NULL,
+
+    label CHAR(1),
+    content_text VARCHAR(255),
+    image_url VARCHAR(500),
+    is_correct BOOLEAN DEFAULT FALSE,
+
+    FOREIGN KEY (question_id)
+        REFERENCES question(id)
+        ON DELETE CASCADE
+);
+
+-- =====================
+-- EXAM
+-- =====================
+CREATE TABLE exam (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(255),
+
+    status ENUM('WAITING','RUNNING','FINISHED') DEFAULT 'WAITING',
+
+    created_by INT NOT NULL,
+    shuffle_option BOOLEAN DEFAULT FALSE,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (created_by) REFERENCES users(id)
+);
+
+-- =====================
+-- EXAM QUESTION (ORDER HANDLED HERE ONLY)
+-- =====================
+CREATE TABLE exam_question (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+
+    exam_id INT NOT NULL,
+    question_id INT NOT NULL,
+
+    order_index INT NOT NULL,
+
+    FOREIGN KEY (exam_id) REFERENCES exam(id) ON DELETE CASCADE,
+    FOREIGN KEY (question_id) REFERENCES question(id) ON DELETE CASCADE,
+
+    UNIQUE(exam_id, question_id),
+    UNIQUE(exam_id, order_index)
+);
+
+-- =====================
+-- PARTICIPANTS
+-- =====================
+CREATE TABLE exam_participant (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+
+    exam_id INT NOT NULL,
+    user_id INT NOT NULL,
+
+    score INT DEFAULT 0,
+    status ENUM('INVITED','JOINED','FINISHED') DEFAULT 'INVITED',
+
+    invited_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (exam_id) REFERENCES exam(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+
+    UNIQUE(exam_id, user_id)
+);
+
+-- =====================
+-- REALTIME EXAM SESSION (CORE ENGINE)
+-- =====================
+CREATE TABLE exam_session (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+
+    exam_id INT NOT NULL UNIQUE,
+
+    current_question_index INT DEFAULT 0,
+
+    state ENUM(
+        'WAITING',
+        'PREVIEW',
+        'SHOW_QUESTION',
+        'SHOW_ANSWER',
+        'FINISHED'
+    ) DEFAULT 'WAITING',
+
+    question_duration INT DEFAULT 30,
+
+    current_question_started_at DATETIME,
+    current_question_end_at DATETIME,
+
+    shuffle_mode BOOLEAN DEFAULT FALSE,
+
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (exam_id)
+        REFERENCES exam(id)
+        ON DELETE CASCADE
+);
+
+-- =====================
+-- STUDENT ANSWERS (IMPORTANT)
+-- =====================
+CREATE TABLE exam_participant_progress (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+
+    exam_id INT NOT NULL,
+    user_id INT NOT NULL,
+
+    question_index INT NOT NULL,
+
+    selected_option_id INT NULL,
+    answer_text TEXT NULL,
+
+    is_correct BOOLEAN DEFAULT NULL,
+
+    answered_at DATETIME,
+
+    FOREIGN KEY (exam_id) REFERENCES exam(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+
+    UNIQUE(exam_id, user_id, question_index)
+);
+
+-- =====================
+-- EVENT LOG (DEBUG + AUDIT + WEBSOCKET TRACE)
+-- =====================
+CREATE TABLE exam_event_log (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+
+    exam_id INT NOT NULL,
+    user_id INT NULL,
+
+    event_type VARCHAR(50),
+
+    payload JSON,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (exam_id) REFERENCES exam(id) ON DELETE cascade);
+    
+    ALTER TABLE question ADD COLUMN answer TEXT NULL;
+
+-- Thêm cột time_limit vào bảng question (để Service của bạn không bị lỗi)
+ALTER TABLE question ADD COLUMN time_limit INT DEFAULT 30;
+
+ALTER TABLE question ADD COLUMN score INT NOT NULL DEFAULT 1;
+
+ALTER TABLE exam_participant_progress
+ADD COLUMN first_submitted_at DATETIME NULL;
+
+ALTER TABLE exam_participant_progress
+ADD COLUMN last_updated_at DATETIME NULL;
+
+ALTER TABLE exam_session
+ADD COLUMN locked BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE exam 
+MODIFY status ENUM('WAITING','ROOM_READY','RUNNING','FINISHED') DEFAULT 'WAITING';
+
+ALTER TABLE exam_session 
+MODIFY state ENUM(
+    'WAITING',
+    'ROOM_READY',
+    'PREVIEW',
+    'SHOW_QUESTION',
+    'SHOW_ANSWER',
+    'FINISHED'
+) DEFAULT 'WAITING';
+
+SELECT * FROM exam_session WHERE exam_id = 1;
+
+ALTER TABLE exam_participant_progress
+DROP COLUMN first_submitted_at;
+
+ALTER TABLE exam_participant_progress
+DROP COLUMN last_updated_at;
+
+ALTER TABLE exam_participant_progress
+ADD CONSTRAINT fk_progress_selected_option
+FOREIGN KEY (selected_option_id)
+REFERENCES question_option(id)
+ON DELETE SET NULL;
+
+ALTER TABLE question
+ADD CONSTRAINT chk_question_answer
+CHECK (
+    (type IN ('ESSAY_TEXT','ESSAY_MEDIA') AND answer IS NOT NULL)
+    OR
+    (type IN ('MCQ_TEXT','MCQ_MEDIA') AND answer IS NULL)
+);
+
+CREATE TABLE exam_anti_cheat_log (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+
+    exam_id INT NOT NULL,
+    user_id INT NOT NULL,
+
+    type ENUM(
+        'LEAVE_APP',
+        'BACK_APP',
+        'SCREENSHOT',
+        'RECORD_START',
+        'RECORD_STOP'
+    ) NOT NULL,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (exam_id)
+        REFERENCES exam(id)
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
+);
+
+
+SELECT question_index, selected_option_id, is_correct, answered_at
+FROM exam_participant_progress
+WHERE exam_id = 6 AND user_id = 2
+ORDER BY answered_at DESC;
+
+SELECT id, exam_id, user_id, score, status
+FROM exam_participant
+WHERE exam_id = 6 AND user_id = 2
+
+ALTER TABLE exam_anti_cheat_log
+MODIFY type ENUM(
+    'LEAVE_APP',
+    'BACK_APP',
+    'SCREENSHOT',
+    'RECORD_START',
+    'RECORD_STOP',
+    'OUT_OF_FOCUS',
+    'PHONE_CALL'
+) NOT NULL;
+
+ALTER TABLE exam_participant
+MODIFY status ENUM('INVITED','JOINED','BANNED') DEFAULT 'INVITED';
+ 
+ALTER TABLE exam 
+MODIFY status ENUM('WAITING','ROOM_READY','RUNNING','FINISHED') DEFAULT 'WAITING';
+ 
+DESCRIBE exam_participant;
+DESCRIBE exam;
+
+ALTER TABLE exam ADD COLUMN scheduled_start_at DATETIME NULL;
+
+ALTER TABLE exam_participant ADD COLUMN seat_number INT NULL;
+
+-- Không cho trùng ghế trong cùng 1 đề thi (MySQL cho phép nhiều NULL trong unique index nên không ảnh hưởng người chưa gán ghế)
+ALTER TABLE exam_participant
+ADD CONSTRAINT uq_exam_seat UNIQUE (exam_id, seat_number);
+
+ALTER TABLE exam_session ADD COLUMN auto_mode BOOLEAN DEFAULT FALSE;

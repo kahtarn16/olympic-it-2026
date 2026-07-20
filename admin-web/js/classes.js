@@ -34,9 +34,7 @@ async function loadClasses(academicYearId = null) {
             );
             table.innerHTML += `
                 <tr>
-                    <td>
-                        ${item.id}
-                    </td>
+                    <td>${item.id}</td>
                     <td>
                         ${item.className}
                     </td>
