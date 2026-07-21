@@ -212,6 +212,7 @@ function renderQuestion(payload) {
         ${q.category ? `<span class="badge mb-2" style="background-color:#0d9488;">${escapeHtml(q.category)}</span>` : ""}
         <p class="pm-question-text">${escapeHtml(q.content)}</p>
         ${q.imageUrl ? `<img src="${resolveImageUrl(q.imageUrl)}" class="img-fluid mb-2 rounded" style="max-height:250px">` : ""}
+        ${q.videoUrl ? `<video src="${resolveImageUrl(q.videoUrl)}" class="img-fluid mb-2 rounded" style="max-height:250px" controls></video>` : ""}
         ${optionsHtml}
     `;
 
