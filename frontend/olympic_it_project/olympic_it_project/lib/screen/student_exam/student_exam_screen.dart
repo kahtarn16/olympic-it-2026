@@ -43,13 +43,9 @@ class _StudentExamScreenState extends State<StudentExamScreen>
   StreamSubscription? _screenshotSub;
   StreamSubscription? _recordingSub;
 
-  // ================= ANTI-CHEAT: PHONE CALL =================
   StreamSubscription<PhoneState>? _phoneStateSub;
   bool _wasRinging = false;
 
-  // ================= ANTI-CHEAT: OUT OF FOCUS =================
-  // Dùng để phân biệt "kéo thanh thông báo" (inactive -> resumed, không qua paused)
-  // với việc thực sự rời khỏi app (inactive -> paused).
   Timer? _focusLossTimer;
   bool _reallyLeftApp = false;
 
@@ -72,7 +68,6 @@ class _StudentExamScreenState extends State<StudentExamScreen>
 
   bool _confirmingAnswer = false;
 
-  // ================= ANTI-CHEAT / BAN =================
   bool _bannedDialogShown = false;
   int? _myUserId;
 
@@ -184,8 +179,6 @@ class _StudentExamScreenState extends State<StudentExamScreen>
 
     switch (stateApp) {
       case AppLifecycleState.inactive:
-        // Có thể là: kéo thanh thông báo, mở app switcher, hoặc bước đệm
-        // trước khi thực sự bị paused (rời app). Chờ 1 chút để phân biệt.
         _focusLossTimer?.cancel();
         _focusLossTimer = Timer(const Duration(milliseconds: 600), () {
           _sendAntiCheatViolation("OUT_OF_FOCUS");
@@ -193,7 +186,6 @@ class _StudentExamScreenState extends State<StudentExamScreen>
         break;
 
       case AppLifecycleState.paused:
-        // Thực sự rời khỏi app (bấm Home, mở app khác, chuyển task...)
         _focusLossTimer?.cancel();
         _reallyLeftApp = true;
         _sendAntiCheatViolation("LEAVE_APP");
@@ -201,12 +193,9 @@ class _StudentExamScreenState extends State<StudentExamScreen>
 
       case AppLifecycleState.resumed:
         if (_focusLossTimer != null && _focusLossTimer!.isActive) {
-          // Quay lại trước khi timer kịp bắn -> đúng là kéo thanh thông báo
-          // rồi thả ra ngay, không thực sự rời app.
           _focusLossTimer!.cancel();
           _sendAntiCheatViolation("OUT_OF_FOCUS");
         } else if (_reallyLeftApp) {
-          // Quay lại sau khi đã thực sự rời app (paused) trước đó.
           _reallyLeftApp = false;
           _sendAntiCheatViolation("BACK_APP");
         }
@@ -241,10 +230,6 @@ class _StudentExamScreenState extends State<StudentExamScreen>
     }
   }
 
-  // ================= ANTI-CHEAT: NGHE ĐIỆN THOẠI =================
-  // Chỉ tính lỗi khi cuộc gọi ĐẾN được BẮT MÁY (CALL_INCOMING -> CALL_STARTED).
-  // Nếu từ chối hoặc để chuông kêu rồi tự tắt (CALL_INCOMING -> CALL_ENDED/NOTHING)
-  // thì KHÔNG tính lỗi.
   Future<void> _initPhoneCallDetection() async {
     try {
       final status = await Permission.phone.request();
@@ -265,12 +250,10 @@ class _StudentExamScreenState extends State<StudentExamScreen>
 
         switch (event.status) {
           case PhoneStateStatus.CALL_INCOMING:
-            // Chuông đang reo, chưa bắt máy -> chưa tính lỗi.
             _wasRinging = true;
             break;
 
           case PhoneStateStatus.CALL_STARTED:
-            // Chỉ tính lỗi nếu ngay trước đó là cuộc gọi ĐẾN đang đổ chuông.
             if (_wasRinging) {
               _wasRinging = false;
               _sendAntiCheatViolation("PHONE_CALL");
@@ -278,14 +261,11 @@ class _StudentExamScreenState extends State<StudentExamScreen>
             break;
 
           case PhoneStateStatus.CALL_OUTGOING:
-            // Học sinh tự gọi đi -> không phải "bắt máy cuộc gọi đến" nên không tính lỗi,
-            // nhưng vẫn reset cờ ringing để tránh tính nhầm nếu sau đó có cuộc gọi đến khác.
             _wasRinging = false;
             break;
 
           case PhoneStateStatus.CALL_ENDED:
           case PhoneStateStatus.NOTHING:
-            // Từ chối / để im / cuộc gọi kết thúc -> không tính, reset cờ.
             _wasRinging = false;
             break;
         }
@@ -594,8 +574,6 @@ class _StudentExamScreenState extends State<StudentExamScreen>
       );
     } on TimeoutException {
       if (!mounted) return;
-      // Server có thể đã nhận & tính điểm, chỉ là response không về kịp.
-      // Coi như đã nộp để tránh nộp trùng, đồng thời đồng bộ lại trạng thái thật.
       setState(() => submitted = true);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -715,7 +693,6 @@ class _StudentExamScreenState extends State<StudentExamScreen>
     );
   }
 
-  // ================= ANTI-CHEAT: DIALOG CẤM THI =================
   Future<void> _showBannedDialog() async {
     if (!mounted || _bannedDialogShown) return;
     _bannedDialogShown = true;
@@ -874,7 +851,6 @@ class _StudentExamScreenState extends State<StudentExamScreen>
 
           const SizedBox(height: 28),
 
-          // Vòng tròn đếm ngược có progress ring
           SizedBox(
             width: 130,
             height: 130,

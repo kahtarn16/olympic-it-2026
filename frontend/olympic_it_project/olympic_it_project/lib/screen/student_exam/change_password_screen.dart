@@ -5,7 +5,7 @@ import 'package:olympic_it_project/screen/auth/login_screen.dart'; // Đã thêm
 import 'package:olympic_it_project/service/auth_service.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
-  final String email; // Nhận email tự động từ màn hình Profile truyền sang
+  final String email; 
 
   const ChangePasswordScreen({super.key, required this.email});
 
@@ -18,25 +18,21 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  bool _isSendingOtp = true; // Trạng thái tự động gửi OTP ban đầu
-  bool _isSubmitLoading = false; // Trạng thái chờ gọi API đổi mật khẩu
+  bool _isSendingOtp = true; 
+  bool _isSubmitLoading = false; 
   String _errorMessage = "";
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
 
-  // Bảng màu Modern UI Deep Navy & Electric Blue đồng bộ từ màn hình Hồ sơ
-  static const Color kPrimaryColor = Color(0xFF1A2332); // Deep Navy
-  static const Color kAccentColor = Color(0xFF3B82F6); // Electric Blue
-  static const Color kBackgroundColor = Color(
-    0xFFF8FAFC,
-  ); // Slate Light nền xám mờ tinh tế
-  static const Color kTextColor = Color(0xFF0F172A); // Charcoal Text
-  static const Color kSubtextColor = Color(0xFF64748B); // Slate Gray
+  static const Color kPrimaryColor = Color(0xFF1A2332); 
+  static const Color kAccentColor = Color(0xFF3B82F6); 
+  static const Color kBackgroundColor = Color(0xFFF8FAFC); 
+  static const Color kTextColor = Color(0xFF0F172A); 
+  static const Color kSubtextColor = Color(0xFF64748B); 
 
   @override
   void initState() {
     super.initState();
-    // Tự động kích hoạt luồng gửi OTP ngay khi sinh viên vừa mở màn hình này lên
     _autoSendOtp();
   }
 
@@ -58,7 +54,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       if (!mounted) return;
       setState(() {
         _isSendingOtp =
-            false; // Tắt trạng thái chờ gửi OTP để hiện Form nhập liệu
+            false; 
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -78,7 +74,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     }
   }
 
-  // Xử lý nút bấm xác nhận đổi mật khẩu dựa trên API reset-password của bạn
   Future<void> _handleResetPassword() async {
     final otp = _otpController.text.trim();
     final newPassword = _passwordController.text.trim();
@@ -127,12 +122,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           ),
         );
 
-        // ĐÁ THẲNG VỀ MÀN HÌNH LOGIN VÀ XÓA SẠCH LỊCH SỬ STACK
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const LoginScreen()),
           (route) =>
-              false, // Xóa hoàn toàn tất cả các màn cũ (Profile, Home,...)
+              false, 
         );
       }
     } catch (e) {
@@ -177,9 +171,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         ),
       ),
       body: SafeArea(
-        //ktvn wslr eqds bmgw
         child: _isSendingOtp
-            // 1. KHI ĐANG LOADING: Dùng Center để căn giữa màn hình
             ? Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -209,7 +201,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 ),
               )
             : _errorMessage.isNotEmpty
-            // 2. KHI CÓ LỖI: Cũng dùng Center để nội dung báo lỗi nằm ở giữa màn hình
             ? Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -264,7 +255,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   ),
                 ),
               )
-            // 3. KHI ĐÃ CÓ FORM: KHÔNG dùng Center nữa, hiển thị ngay từ đỉnh bên dưới AppBar
             : SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.symmetric(
@@ -292,7 +282,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     ),
                     const SizedBox(height: 28),
 
-                    // --- Ô NHẬP MÃ OTP ---
                     const Text(
                       "MÃ XÁC THỰC OTP",
                       style: TextStyle(
@@ -408,7 +397,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // --- Ô NHẬP LẠI MẬT KHẨU MỚI ---
                     const Text(
                       "XÁC NHẬN MẬT KHẨU MỚI",
                       style: TextStyle(
@@ -472,7 +460,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     ),
                     const SizedBox(height: 36),
 
-                    // --- NÚT XÁC NHẬN CẬP NHẬT ---
                     SizedBox(
                       width: double.infinity,
                       height: 52,

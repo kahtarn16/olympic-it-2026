@@ -13,7 +13,7 @@ dependencies:
   flutter_secure_storage: ^10.3.1
   shared_preferences: ^2.5.5
   image_picker: ^1.1.2
-  file_picker: ^12.0.0-beta.7
+  file_picker: ^10.3.3
   cached_network_image: ^3.4.1
   flutter_screenguard: ^2.0.1
   stomp_dart_client: ^3.0.1

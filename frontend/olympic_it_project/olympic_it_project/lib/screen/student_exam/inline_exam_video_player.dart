@@ -42,7 +42,6 @@ class _InlineExamVideoPlayerState extends State<InlineExamVideoPlayer> {
     });
 
     try {
-      // Đảm bảo hoạt động trên cả iOS & Android với URI
       _controller = VideoPlayerController.networkUrl(
         Uri.parse(widget.videoUrl),
       );
