@@ -516,7 +516,7 @@ async function loadQuestionOptionsForSelect() {
         if (level) {
             items = items.filter(q => q.level === level);
         }
-
+        
         if (items.length === 0) {
             questionSelect.innerHTML = `<option value="">Không có câu hỏi phù hợp</option>`;
             return;
